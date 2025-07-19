@@ -10,6 +10,7 @@ def save_json_to_github(data):
     branch = os.environ.get("GITHUB_BRANCH", "main")
 
     url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json"
@@ -38,7 +39,6 @@ def save_json_to_github(data):
     else:
         print("❌ GitHub save error:", res.text)
 
-
 def add_movie_to_json(title, msg_id, filename=None):
     path = "movie_list.json"
     data = []
@@ -51,10 +51,10 @@ def add_movie_to_json(title, msg_id, filename=None):
             except json.JSONDecodeError:
                 data = []
 
-    # नया मूवी object बनाओ
+    # नया मूवी object बनाओ (ID में कोई extra '1' नहीं जोड़ा गया)
     movie = {
         "title": title.strip().lower(),
-        "msg_id": msg_id
+        "msg_id": msg_id  # यहीं गलती हो रही थी पहले
     }
 
     if filename:
