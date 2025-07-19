@@ -1,4 +1,4 @@
-from updater import add_movie_to_json  
+from updater import add_movie_to_json   
 from pyrogram import Client, filters
 from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request, render_template_string, redirect
@@ -189,43 +189,35 @@ async def start(client, message):
 async def handle_file(client, message):
     title = message.caption or message.text or "Untitled"
     filename = message.document.file_name if message.document else message.video.file_name
-    add_movie_to_json(title, message.id, filename)
+    add_movie_to_json(title, message.message_id, filename)
     await message.reply_text("✅ Movie JSON में save हो गई 📁")
 
 @app.on_message(filters.text & (filters.private | filters.group))
 async def handle_text(client, message):
     if not message.from_user or message.from_user.is_bot:
         return
-
     text = message.text.lower().strip()
     if text.startswith("/"):
         return
-
     user_id = message.from_user.id
     chat_id = message.chat.id
-
     if user_id not in user_message_history:
         user_message_history[user_id] = {}
-
     user_msgs = user_message_history[user_id]
     user_msgs[text] = user_msgs.get(text, 0) + 1
     if user_msgs[text] > 3 or user_msgs[text] > 1:
         return
-
     if message.chat.type == "private":
         for keyword, reply in conversation_triggers:
             if keyword in text:
                 await message.reply_text(reply)
                 return
-
     try:
         stop_words = {"facebook", "instagram", "youtube", "tiktok", "whatsapp", "google", "telegram", "game", "gaming", "terabox", "feedback", "dubbed", "emoji", "streaming", "link", "romance", "romantic", "status", "application", "install", "android", "click", "language", "platform", "channel", "online", "comedy", "movies", "movie", "bhai", "bhejo", "bro", "hindi", "english", "south"}
         if any(w in text for w in stop_words):
             return
-
         with open("movie_list.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-
         best_match = None
         best_score = 0
         for movie in data:
@@ -233,14 +225,11 @@ async def handle_text(client, message):
             if score > best_score and score > 70:
                 best_score = score
                 best_match = movie
-
         if best_match:
             await client.forward_messages(chat_id, CHANNEL_USERNAME, best_match["msg_id"])
             return
-
     except Exception as e:
         print("Search Error in JSON:", e)
-
     try:
         async for msg in app.get_chat_history(CHANNEL_USERNAME, limit=1000):
             if msg.caption and fuzz.partial_ratio(text, msg.caption.lower()) > 75:
@@ -248,7 +237,6 @@ async def handle_text(client, message):
                 return
     except Exception as e:
         print("Search Error in Channel:", e)
-
     if message.chat.type == "private":
         if any(w in text for w in ["upload", "movie chahiye", "please", "req"]):
             await message.reply_text("🍿 Ok ji! Aapki request note kar li gayi hai, jald hi upload karungi 🥰")
