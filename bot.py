@@ -1,4 +1,4 @@
-from updater import add_movie_to_json   
+from updater import add_movie_to_json    
 from pyrogram import Client, filters
 from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request, render_template_string, redirect
@@ -151,8 +151,8 @@ user_message_history = {}
 
 # 💬 Hinglish Conversation Triggers
 conversation_triggers = [
-    ("good night", "Good night ji! Sweet dreams 💤 ~ Apki Sara"),
-    ("good morning", "Good morning! Naya din, nayi movie 🎬"),
+    ("good night", "Good night ji! Sweet dreams 🛌 ~ Apki Sara"),
+    ("good morning", "Good morning! Naya din, nayi movie 🎥"),
     ("thank", "Arey koi baat nahi ji! ❤️"),
     ("love you", "Main bhi aapko movie ke saath saath pyaar karti hoon 😄"),
     ("hello", "Hello ji! Kaise ho aap?"),
@@ -179,7 +179,7 @@ conversation_triggers = [
 async def start(client, message):
     user = message.from_user.first_name
     await message.reply_text(
-        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\nBas movie ka naam bhejiye... main dhoond kar de doongi!\n\n📺 Hamara channel: https://t.me/{CHANNEL_USERNAME}",
+        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\nBas movie ka naam bhejiye... main dhoond kar de doongi!\n\n📺 Hamara channel: https://t.me/{CHANNEL_USERNAME}",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📺 Channel kholen", url=f"https://t.me/{CHANNEL_USERNAME}")]
         ])
@@ -189,8 +189,8 @@ async def start(client, message):
 async def handle_file(client, message):
     title = message.caption or message.text or "Untitled"
     filename = message.document.file_name if message.document else message.video.file_name
-    add_movie_to_json(title, message.message_id, filename)
-    await message.reply_text("✅ Movie JSON में save हो गई 📁")
+    add_movie_to_json(title, message.id, filename)
+    await message.reply_text("✅ Movie JSON mein save ho gayi 📁")
 
 @app.on_message(filters.text & (filters.private | filters.group))
 async def handle_text(client, message):
@@ -249,7 +249,7 @@ async def welcome(client, update: ChatMemberUpdated):
         name = update.new_chat_member.user.first_name
         await client.send_message(
             chat_id=update.chat.id,
-            text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💁‍♀️\nKoi movie chahiye toh bas naam boliye ❤️"
+            text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💅‍♀️\nKoi movie chahiye toh bas naam boliye ❤️"
         )
 
 app.run()
