@@ -9,19 +9,24 @@ def save_json_to_github(data):
     file_path = os.environ.get("GITHUB_FILE_PATH")
     branch = os.environ.get("GITHUB_BRANCH", "main")
 
-    url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+    if not all([token, repo, file_path]):
+        print("❌ GitHub config environment variables missing.")
+        return
 
+    url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json"
     }
 
-    # GitHub file की SHA लेना जरूरी है update के लिए
+    # पहले से मौजूद SHA लेना
     response = requests.get(url, headers=headers)
     sha = response.json().get("sha") if response.status_code == 200 else None
 
-    # JSON को base64 में encode करना पड़ेगा GitHub API के लिए
-    encoded_content = b64encode(json.dumps(data, indent=4, ensure_ascii=False).encode()).decode()
+    # JSON को base64 में encode करना
+    encoded_content = b64encode(
+        json.dumps(data, indent=4, ensure_ascii=False).encode()
+    ).decode()
 
     payload = {
         "message": "Update movie_list.json",
@@ -43,7 +48,7 @@ def add_movie_to_json(title, msg_id, filename=None):
     path = "movie_list.json"
     data = []
 
-    # अगर पहले से JSON मौजूद है तो उसे लोड करो
+    # JSON फ़ाइल पढ़ो (अगर है तो)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             try:
@@ -51,20 +56,28 @@ def add_movie_to_json(title, msg_id, filename=None):
             except json.JSONDecodeError:
                 data = []
 
-    # नया मूवी object बनाओ (ID में कोई extra '1' नहीं जोड़ा गया)
+    # message ID को int में ensure करो
+    try:
+        msg_id = int(str(msg_id).strip())
+    except ValueError:
+        print("❌ Invalid message ID")
+        return
+
+    # नया मूवी object बनाओ
     movie = {
-        "title": title.strip().lower(),
-        "msg_id": msg_id  # यहीं गलती हो रही थी पहले
+        "title": title.strip(),
+        "msg_id": msg_id
     }
 
     if filename:
         movie["filename"] = filename.strip()
 
-    # Append करो और save करो
     data.append(movie)
 
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
-    # GitHub पर भी push करो
+    print("✅ लोकल movie_list.json में नया मूवी ऐड हो गया")
+
+    # GitHub पर अपडेट करो
     save_json_to_github(data)
