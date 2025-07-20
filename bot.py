@@ -190,13 +190,24 @@ async def start(client, message):
 @app.on_message((filters.document | filters.video) & filters.private)
 async def handle_file(client, message):
     title = message.caption or message.text or "Untitled"
-    filename = message.document.file_name if message.document else message.video.file_name
+    filename = None
 
-    forwarded = await message.forward(CHANNEL_USERNAME)
-    actual_msg_id = forwarded.id
+    if message.document:
+        filename = message.document.file_name
+    elif message.video:
+        filename = message.video.file_name
 
-    add_movie_to_json(title, actual_msg_id, filename)
+    # ✅ Ye message.id nahi, correct msg_id chahiye jo forwarded channel ka ho
+    if message.forward_from_chat and message.forward_from_message_id:
+        msg_id = message.forward_from_message_id
+    else:
+        msg_id = message.id  # fallback if not forwarded
+
+    print("✅ Saved msg_id:", msg_id)
+
+    add_movie_to_json(title, msg_id, filename)
     await message.reply_text("✅ Movie JSON mein save ho gayi 📁")
+
 
 @app.on_message(filters.text & (filters.private | filters.group)) 
 async def handle_text(client, message): 
