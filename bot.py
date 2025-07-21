@@ -230,7 +230,7 @@ async def handle_text(client, message):
                 await message.reply_text(reply) 
                 return 
     try: 
-        stop_words = {"facebook", "instagram", "youtube", "tiktok", "whatsapp", "google", "telegram", "game", "gaming", "terabox", "feedback", "dubbed", "emoji", "streaming", "link", "romance", "romantic", "status", "application", "install", "android", "click", "language", "platform", "channel", "online", "comedy", "movies", "movie", "bhai", "bhejo", "bro", "hindi", "english", "south"} 
+        stop_words = {"facebook", "instagram", "youtube", "tiktok", "whatsapp", "google", "telegram", "game", "gaming", "terabox", "feedback"} 
         if any(w in text for w in stop_words): 
             return 
         with open("movie_list.json", "r", encoding="utf-8") as f: 
