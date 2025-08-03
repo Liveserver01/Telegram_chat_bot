@@ -1,10 +1,3 @@
-# ✅ Full Updated bot.py
-# - GitHub-based JSON fetch
-# - Admin Panel (Add/Edit/Delete)
-# - file_url support
-# - Hinglish conversation replies
-# - fallback fuzzy movie match
-
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
 from flask import Flask, request, render_template_string, redirect
@@ -18,7 +11,6 @@ from fuzzywuzzy import fuzz
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
     raise ValueError("❌ ADMIN_PASSWORD not set in environment variables!")
-
 
 # 🌐 Env Vars
 API_ID = int(os.environ.get("API_ID"))
@@ -35,25 +27,25 @@ flask_app = Flask(__name__)
 
 # ✅ GitHub JSON Fetch
 def load_movies_from_github():
-    try:
-        response = requests.get(GITHUB_JSON_URL)
-        if response.status_code == 200:
-            return response.json()
-        print("❌ GitHub JSON fetch failed:", response.status_code)
-        return []
-    except Exception as e:
-        print("❌ Error loading movie_list.json:", e)
-        return []
+    try:
+        response = requests.get(GITHUB_JSON_URL)
+        if response.status_code == 200:
+            return response.json()
+        print("❌ GitHub JSON fetch failed:", response.status_code)
+        return []
+    except Exception as e:
+        print("❌ Error loading movie_list.json:", e)
+        return []
 
 # 🌐 Flask routes
 @flask_app.route("/")
 def home():
-    return "✅ Sara is alive via Render & GitHub!"
+    return "✅ Sara is alive via Render & GitHub!"
 
 @flask_app.route("/movies")
 def get_movies():
-    data = load_movies_from_github()
-    return {"count": len(data), "movies": data}
+    data = load_movies_from_github()
+    return {"count": len(data), "movies": data}
 
 # 🔐 Admin Panel Templates
 admin_template = '''<!DOCTYPE html><html><head><title>Login</title></head><body><h2>🔐 Admin Login</h2><form method="POST">Password: <input type="password" name="password" required><input type="submit" value="Login"></form></body></html>'''
@@ -64,149 +56,149 @@ edit_template = '''<!DOCTYPE html><html><head><title>Edit Movie</title></head><b
 
 @flask_app.route("/admin", methods=["GET", "POST"])
 def admin_login():
-    if request.method == "POST":
-        pwd = request.form.get("password")
-        if pwd == ADMIN_PASSWORD:
-            data = load_movies_from_github()
-            return render_template_string(dashboard_template, movies=data, count=len(data), password=pwd)
-        return "❌ Wrong password!"
-    return render_template_string(admin_template)
+    if request.method == "POST":
+        pwd = request.form.get("password")
+        if pwd == ADMIN_PASSWORD:
+            data = load_movies_from_github()
+            return render_template_string(dashboard_template, movies=data, count=len(data), password=pwd)
+        return "❌ Wrong password!"
+    return render_template_string(admin_template)
 
 @flask_app.route("/admin/add", methods=["POST"])
 def admin_add_movie():
-    pwd = request.form.get("password")
-    if pwd != ADMIN_PASSWORD:
-        return "❌ Unauthorized"
-    try:
-        with open("movie_list.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except:
-        data = []
-    data.append({
-        "title": request.form["title"],
-        "filename": request.form.get("filename", ""),
-        "file_url": request.form.get("file_url", "")
-    })
-    with open("movie_list.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-    return redirect(f"/admin?password={pwd}")
+    pwd = request.form.get("password")
+    if pwd != ADMIN_PASSWORD:
+        return "❌ Unauthorized"
+    try:
+        with open("movie_list.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except:
+        data = []
+    data.append({
+        "title": request.form["title"],
+        "filename": request.form.get("filename", ""),
+        "file_url": request.form.get("file_url", "")
+    })
+    with open("movie_list.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+    return redirect(f"/admin?password={pwd}")
 
 @flask_app.route("/admin/edit/<int:index>", methods=["GET", "POST"])
 def admin_edit_movie(index):
-    pwd = request.values.get("password")
-    if pwd != ADMIN_PASSWORD:
-        return "❌ Unauthorized"
-    try:
-        with open("movie_list.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except:
-        return "❌ movie_list.json not found"
-    if index >= len(data):
-        return "❌ Invalid index"
-    if request.method == "POST":
-        data[index] = {
-            "title": request.form["title"],
-            "filename": request.form.get("filename", ""),
-            "file_url": request.form.get("file_url", "")
-        }
-        with open("movie_list.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-        return redirect(f"/admin?password={pwd}")
-    return render_template_string(edit_template, movie=data[index], index=index, password=pwd)
+    pwd = request.values.get("password")
+    if pwd != ADMIN_PASSWORD:
+        return "❌ Unauthorized"
+    try:
+        with open("movie_list.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except:
+        return "❌ movie_list.json not found"
+    if index >= len(data):
+        return "❌ Invalid index"
+    if request.method == "POST":
+        data[index] = {
+            "title": request.form["title"],
+            "filename": request.form.get("filename", ""),
+            "file_url": request.form.get("file_url", "")
+        }
+        with open("movie_list.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return redirect(f"/admin?password={pwd}")
+    return render_template_string(edit_template, movie=data[index], index=index, password=pwd)
 
 @flask_app.route("/admin/delete/<int:index>")
 def admin_delete_movie(index):
-    pwd = request.args.get("password")
-    if pwd != ADMIN_PASSWORD:
-        return "❌ Unauthorized"
-    try:
-        with open("movie_list.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except:
-        return "❌ movie_list.json not found"
-    if index >= len(data):
-        return "❌ Invalid index"
-    del data[index]
-    with open("movie_list.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-    return redirect(f"/admin?password={pwd}")
+    pwd = request.args.get("password")
+    if pwd != ADMIN_PASSWORD:
+        return "❌ Unauthorized"
+    try:
+        with open("movie_list.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except:
+        return "❌ movie_list.json not found"
+    if index >= len(data):
+        return "❌ Invalid index"
+    del data[index]
+    with open("movie_list.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+    return redirect(f"/admin?password={pwd}")
 
 # 🔁 Run Flask app in background
 threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))).start()
 
 # ✨ Hinglish Triggers
 conversation_triggers = [
-    ("good night", "Good night ji! Sweet dreams 🛌 ~ Apki Sara"),
-    ("good morning", "Good morning! Naya din, nayi movie 🎥"),
-    ("thank", "Arey koi baat nahi ji! ❤️"),
-    ("love you", "Main bhi aapko movie ke saath saath pyaar karti hoon 😄"),
-    ("hello", "Hello ji! Kaise ho aap?"),
-    ("hi", "Hi hi! Sara yahan hai aapke liye."),
-    ("bored", "Toh ek dhamakedar movie dekhte hain!"),
-    ("movie batao", "Aap bas naam likho, main bhejti hoon!"),
-    ("acha", "Bilkul sahi! Ab movie ka naam batao."),
-    ("ok", "Chaliye fir! Movie ka naam likhiye."),
-    ("haan", "Toh movie name likho fir!"),
-    ("nahi", "Thik hai fir jab chahiye ho toh zarur batana."),
-    ("kya dekh rahe ho", "Main toh sirf movie files dekh rahi hoon 😄")
+    ("good night", "Good night ji! Sweet dreams 🛌 ~ Apki Sara"),
+    ("good morning", "Good morning! Naya din, nayi movie 🎥"),
+    ("thank", "Arey koi baat nahi ji! ❤️"),
+    ("love you", "Main bhi aapko movie ke saath saath pyaar karti hoon 😄"),
+    ("hello", "Hello ji! Kaise ho aap?"),
+    ("hi", "Hi hi! Sara yahan hai aapke liye."),
+    ("bored", "Toh ek dhamakedar movie dekhte hain!"),
+    ("movie batao", "Aap bas naam likho, main bhejti hoon!"),
+    ("acha", "Bilkul sahi! Ab movie ka naam batao."),
+    ("ok", "Chaliye fir! Movie ka naam likhiye."),
+    ("haan", "Toh movie name likho fir!"),
+    ("nahi", "Thik hai fir jab chahiye ho toh zarur batana."),
+    ("kya dekh rahe ho", "Main toh sirf movie files dekh rahi hoon 😄")
 ]
 
 @app.on_message(filters.command("start"))
 async def start(client, message):
-    user = message.from_user.first_name
-    await message.reply_text(
-        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\nMovie ka naam bhejiye, main bhejti hoon!",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("📺 Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]
-        ])
-    )
+    user = message.from_user.first_name
+    await message.reply_text(
+        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\nMovie ka naam bhejiye, main bhejti hoon!",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📺 Channel", url=f"https://t.me/{CHANNEL_USERNAME}")]
+        ])
+    )
 
 @app.on_message(filters.text & (filters.private | filters.group))
 async def handle_text(client, message):
-    if not message.from_user or message.from_user.is_bot:
-        return
+    if not message.from_user or message.from_user.is_bot:
+        return
 
-    text = message.text.lower().strip()
+    text = message.text.lower().strip()
 
-    if text.startswith("/"):
-        return
+    if text.startswith("/"):
+        return
 
-    try:
-        response = requests.get(GITHUB_JSON_URL)
-        data = response.json()
+    for key, reply in conversation_triggers:
+        if key in text:
+            await message.reply_text(reply)
+            return
 
-        best_match = None
-        best_score = 0
+    try:
+        response = requests.get(GITHUB_JSON_URL)
+        data = response.json()
 
-        for movie in data:
-            score = fuzz.partial_ratio(text, movie["title"].lower())
-            if score > best_score and score > 70:
-                best_score = score
-                best_match = movie
+        best_match = None
+        best_score = 0
 
-        if best_match:
-            caption = f"🎬 *{best_match['title']}*\n📁 Filename: `{best_match.get('filename', 'N/A')}`"
-            await message.reply_video(best_match["file_url"], caption=caption, quote=True)
-            return
+        for movie in data:
+            score = fuzz.partial_ratio(text, movie["title"].lower())
+            if score > best_score and score > 70:
+                best_score = score
+                best_match = movie
 
-    except Exception as e:
-        print("Error fetching or parsing movie_list.json:", e)
+        if best_match:
+            caption = f"🎬 *{best_match['title']}*\n📁 Filename: `{best_match.get('filename', 'N/A')}`"
+            await message.reply_video(best_match["file_url"], caption=caption, quote=True)
+            return
 
-    # fallback: only reply in private if no match found
-    if message.chat.type == "private":
-        await message.reply_text("😔 Sorry ji... ye movie abhi available nahi hai.\nRequest bhej dijiye, main try karungi jaldi se lana 💕")
+    except Exception as e:
+        print("Error fetching or parsing movie_list.json:", e)
+
+    if message.chat.type == "private":
+        await message.reply_text("😔 Sorry ji... ye movie abhi available nahi hai.\nRequest bhej dijiye, main try karungi jaldi se lana 💕")
 
 @app.on_chat_member_updated()
 async def welcome(client, update: ChatMemberUpdated):
-    if update.new_chat_member and not update.new_chat_member.user.is_bot:
-        name = update.new_chat_member.user.first_name
-        await client.send_message(
-            chat_id=update.chat.id,
-            text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💅‍♀️\nMovie chahiye toh bas naam likho!"
-        )
+    if update.new_chat_member and not update.new_chat_member.user.is_bot:
+        name = update.new_chat_member.user.first_name
+        await client.send_message(
+            chat_id=update.chat.id,
+            text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💅‍♀️\nMovie chahiye toh bas naam likho!"
+        )
 
 app.run()
-
-
-
-
