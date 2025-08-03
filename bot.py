@@ -27,8 +27,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_USERNAME = os.environ.get("CHANNEL_USERNAME", "youtuner02alltypemovies")
 
 # 🧠 GitHub movie_list.json URL
-GITHUB_JSON_URL = "https://raw.githubusercontent.com/Liveserver01/Telegram_chat_bot/3a8246bc555c65359c1d17a89f3b2705ed1b6350/movie_list.json
-"
+GITHUB_JSON_URL = "https://raw.githubusercontent.com/Liveserver01/Telegram_chat_bot/3a8246bc555c65359c1d17a89f3b2705ed1b6350/movie_list.json"
 
 # 🤖 Bot init
 app = Client("sara_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -199,5 +198,6 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
 
