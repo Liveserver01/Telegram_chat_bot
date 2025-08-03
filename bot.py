@@ -165,28 +165,36 @@ async def start(client, message):
 async def handle_text(client, message):
     if not message.from_user or message.from_user.is_bot:
         return
+
     text = message.text.lower().strip()
+
     if text.startswith("/"):
         return
-    for keyword, reply in conversation_triggers:
-        if keyword in text:
-            await message.reply_text(reply)
-            return
+
     try:
-        data = load_movies_from_github()
+        response = requests.get(GITHUB_JSON_URL)
+        data = response.json()
+
         best_match = None
         best_score = 0
+
         for movie in data:
             score = fuzz.partial_ratio(text, movie["title"].lower())
             if score > best_score and score > 70:
                 best_score = score
                 best_match = movie
-        if best_match and best_match.get("file_url"):
-            await message.reply_document(best_match["file_url"], caption=best_match["title"])
+
+        if best_match:
+            caption = f"🎬 *{best_match['title']}*\n📁 Filename: `{best_match.get('filename', 'N/A')}`"
+            await message.reply_video(best_match["file_url"], caption=caption, quote=True)
             return
+
     except Exception as e:
-        print("❌ Search Error:", e)
-    await message.reply_text("😔 Sorry ji... wo movie abhi nahi hai.\nRequest bhej dijiye, main jald laungi 💕")
+        print("Error fetching or parsing movie_list.json:", e)
+
+    # fallback: only reply in private if no match found
+    if message.chat.type == "private":
+        await message.reply_text("😔 Sorry ji... ye movie abhi available nahi hai.\nRequest bhej dijiye, main try karungi jaldi se lana 💕")
 
 @app.on_chat_member_updated()
 async def welcome(client, update: ChatMemberUpdated):
@@ -198,6 +206,7 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
 
 
