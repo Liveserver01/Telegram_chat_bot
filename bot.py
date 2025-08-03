@@ -14,9 +14,11 @@ import json
 import requests
 from fuzzywuzzy import fuzz
 
-# 🔐 Secure Password\ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+# 🔐 Secure Password
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
-    raise ValueError("❌ ADMIN_PASSWORD not set in environment variables!")
+    raise ValueError("❌ ADMIN_PASSWORD not set in environment variables!")
+
 
 # 🌐 Env Vars
 API_ID = int(os.environ.get("API_ID"))
@@ -197,4 +199,5 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
