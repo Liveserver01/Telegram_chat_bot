@@ -366,36 +366,46 @@ conversation_triggers = [
 
 # -------------------------
 # Auto-save movie from channel
-# -------------------------
-@app.on_message(filters.channel & (filters.video | filters.document))
-async def save_movie_from_channel(client, message):
-    try:
-        title = message.caption or (message.video.file_name if message.video else message.document.file_name)
-        filename = message.video.file_name if message.video else message.document.file_name
-        file_id = message.video.file_id if message.video else message.document.file_id
+# -----------------------
 
-        if not title:
-            print("⚠️ Title missing, skipping...")
+@app.on_message(filters.channel & filters.photo)
+async def save_movie_poster(client, message):
+    try:
+        caption = message.caption or ""
+        if not caption:
+            print("⚠️ Caption missing in photo message, skipping...")
             return
+
+        # Caption से पहला URL खोजो
+        urls = re.findall(r'(https?://\S+)', caption)
+        if not urls:
+            print("⚠️ No URL found in caption of photo message, skipping...")
+            return
+        download_link = urls[0].strip()
+
+        # Caption की पहली लाइन को Title मानो
+        title = caption.split('\n')[0].strip()
 
         movies = load_movies_local()
 
+        # Duplicate check: file_url से मेल खाता हो तो न जोड़ो
         for movie in movies:
-            if movie.get("file_url") == file_id:
-                print("ℹ️ Movie already in list, skipping:", title)
+            if movie.get("file_url") == download_link:
+                print("ℹ️ Movie link already exists in JSON, skipping:", title)
                 return
 
+        # नई movie add करो
         movies.append({
-            "title": title.strip(),
-            "filename": filename or "",
-            "file_url": file_id
+            "title": title,
+            "filename": "",  # photo के case में filename नहीं होता
+            "file_url": download_link
         })
 
         save_movies_local(movies)
-        print(f"✅ Added movie: {title}")
+        print(f"✅ Added movie poster from photo message: {title}")
 
     except Exception as e:
-        print("❌ Error saving movie:", e)
+        print("❌ Error saving movie poster:", e)
 
 # -------------------------
 # Bot Handlers
@@ -474,3 +484,4 @@ async def welcome(client, update: ChatMemberUpdated):
 if __name__ == "__main__":
     print("Sara bot starting... (Flask running in background thread)")
     app.run()
+
