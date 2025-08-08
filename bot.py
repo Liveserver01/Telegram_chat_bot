@@ -1,4 +1,3 @@
-# sara_bot_fixed.py
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
 from flask import Flask, request, render_template_string, redirect, session, url_for
@@ -32,15 +31,12 @@ except Exception:
 API_HASH = _api_hash
 BOT_TOKEN = _bot_token
 
-# Optional channel config
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002039183876"))
 CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "")
 
-# GitHub JSON (primary source) and local fallback
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Liveserver01/Telegram_chat_bot/3a8246bc555c65359c1d17a89f3b2705ed1b6350/movie_list.json"
 LOCAL_JSON_PATH = "movie_list.json"
 
-# Flask secret key for sessions
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "1b2e473094dc56a9ba54522c332600b1")
 
 # -------------------------
@@ -62,7 +58,6 @@ def load_movies_from_github():
         print("❌ GitHub JSON fetch failed:", resp.status_code)
     except Exception as e:
         print("❌ Error loading movie_list.json from GitHub:", e)
-    # fallback to local file
     try:
         with open(LOCAL_JSON_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -80,6 +75,33 @@ def save_movies_local(data):
     with open(LOCAL_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+import threading
+json_lock = threading.Lock()
+
+def add_movie_to_json(title, msg_id, filename=None, file_url=None):
+    with json_lock:
+        try:
+            data = load_movies_local()
+        except:
+            data = []
+        # Avoid duplicate msg_id or file_url
+        if msg_id and any(m.get("msg_id") == msg_id for m in data):
+            print(f"Duplicate msg_id {msg_id}, skipping add.")
+            return False
+        if file_url and any(m.get("file_url") == file_url for m in data):
+            print(f"Duplicate file_url {file_url}, skipping add.")
+            return False
+        movie_entry = {
+            "title": title.strip(),
+            "msg_id": msg_id or 0,
+            "filename": filename or "",
+            "file_url": file_url or ""
+        }
+        data.append(movie_entry)
+        save_movies_local(data)
+        print(f"Added movie: {title} msg_id:{msg_id} file_url:{file_url}")
+        return True
+
 # -------------------------
 # Caption parsing function
 # -------------------------
@@ -88,8 +110,7 @@ def parse_caption(caption_text):
     title = None
     for line in lines:
         line_strip = line.strip()
-        if line_strip != "" and not line_strip.startswith("----") and not line_strip.startswith("📌") and not line_strip.startswith("Feedback") and not line_strip.startswith("Download"):
-            # Assume first meaningful line as title
+        if line_strip != "" and not line_strip.startswith(("----","📌","Feedback","Download")):
             title = line_strip
             break
     urls = re.findall(r'https?://\S+', caption_text)
@@ -97,7 +118,7 @@ def parse_caption(caption_text):
     return title, download_link
 
 # -------------------------
-# Admin templates (for brevity, insert your HTML templates here as string variables)
+# Admin HTML Templates
 # -------------------------
 login_template = '''
 <!doctype html>
@@ -337,13 +358,12 @@ def get_movies():
     data = load_movies_from_github()
     return {"count": len(data), "movies": data}
 
-# Run Flask in a separate daemon thread so Pyrogram can run in main thread
+# Run Flask in a separate daemon thread
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     flask_app.run(host="0.0.0.0", port=port)
 
-flask_thread = threading.Thread(target=run_flask, daemon=True)
-flask_thread.start()
+threading.Thread(target=run_flask, daemon=True).start()
 
 # -------------------------
 # Conversation triggers
@@ -378,14 +398,13 @@ async def save_movie_poster(client, message):
             return
 
         movies = load_movies_local()
-        # Duplicate check on download link
         if any(m.get("file_url") == download_link for m in movies):
             print("Movie already exists, skipping:", title)
             return
 
         movies.append({
             "title": title,
-            "filename": "",  # optional
+            "filename": "",
             "file_url": download_link
         })
         save_movies_local(movies)
@@ -393,6 +412,39 @@ async def save_movie_poster(client, message):
 
     except Exception as e:
         print("Error saving movie poster:", e)
+
+# -------------------------
+# New handler: user sends document or video in private chat
+# Forward it to CHANNEL_ID and save msg_id and details in JSON
+# -------------------------
+@app.on_message((filters.document | filters.video) & filters.private)
+async def handle_file(client, message):
+    title = message.caption or message.text or "Untitled"
+    filename = None
+    file_id = None
+
+    if message.document:
+        filename = message.document.file_name
+        file_id = message.document.file_id
+    elif message.video:
+        filename = message.video.file_name
+        file_id = message.video.file_id
+
+    try:
+        forwarded_msg = await message.forward(CHANNEL_ID)
+        msg_id = forwarded_msg.message_id
+        file_url = file_id
+    except Exception as e:
+        print("Forwarding to channel failed:", e)
+        msg_id = message.message_id
+        file_url = file_id
+
+    added = add_movie_to_json(title, msg_id, filename, file_url)
+
+    if added:
+        await message.reply_text("✅ Movie JSON में save हो गई 📁")
+    else:
+        await message.reply_text("⚠️ ये movie पहले से JSON में मौजूद है।")
 
 # -------------------------
 # Bot Handlers
