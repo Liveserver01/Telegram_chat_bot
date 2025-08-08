@@ -19,7 +19,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # ✅ Private channel support
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002039183876"))  # Example: -1001234567890
-CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "https://t.me/+qYUn4HuS7hRiNTNl")  # If private channel invite link available
+CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "https://t.me/+ee6GB9d030szYzNl")  # If private channel invite link available
 
 # 🧠 GitHub movie_list.json URL
 GITHUB_JSON_URL = "https://raw.githubusercontent.com/Liveserver01/Telegram_chat_bot/3a8246bc555c65359c1d17a89f3b2705ed1b6350/movie_list.json"
@@ -371,5 +371,6 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
 
