@@ -203,12 +203,16 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
-    try:
+
+import json
+
+try:
     with open("movie_list.json", "r", encoding="utf-8") as f:
         movie_list = json.load(f)
 except Exception as e:
     print("Error loading movie_list.json:", e)
     movie_list = {}
+
 
 
 # 🌐 Flask routes
@@ -376,6 +380,7 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
 
 
