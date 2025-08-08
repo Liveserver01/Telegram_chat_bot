@@ -49,7 +49,6 @@ FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "1b2e473094dc56a9ba54522c3
 app = Client("sara_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 flask_app = Flask(__name__)
 flask_app.secret_key = FLASK_SECRET_KEY
-# Session lifetime: optional, e.g., 8 hours
 flask_app.permanent_session_lifetime = timedelta(hours=8)
 
 # -------------------------
@@ -78,12 +77,27 @@ def load_movies_local():
         return []
 
 def save_movies_local(data):
-    # Ensure directory exists if needed
     with open(LOCAL_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 # -------------------------
-# Admin templates (updated)
+# Caption parsing function
+# -------------------------
+def parse_caption(caption_text):
+    lines = caption_text.split('\n')
+    title = None
+    for line in lines:
+        line_strip = line.strip()
+        if line_strip != "" and not line_strip.startswith("----") and not line_strip.startswith("📌") and not line_strip.startswith("Feedback") and not line_strip.startswith("Download"):
+            # Assume first meaningful line as title
+            title = line_strip
+            break
+    urls = re.findall(r'https?://\S+', caption_text)
+    download_link = urls[0] if urls else None
+    return title, download_link
+
+# -------------------------
+# Admin templates (for brevity, insert your HTML templates here as string variables)
 # -------------------------
 login_template = '''
 <!doctype html>
@@ -127,13 +141,10 @@ dashboard_template = '''
       container.appendChild(div);
     }
     function prepareBulkAdd() {
-      // count forms
       const container = document.getElementById('bulk-add-container');
       const forms = container.children;
       const total = forms.length;
-      // mark total
       document.getElementById('bulk_count').value = total;
-      // nothing else; server will read form fields by index
       return true;
     }
     function toggleAll(source) {
@@ -176,7 +187,6 @@ dashboard_template = '''
     <input type="hidden" name="password" value="{{ session.get('pwd_token') }}">
     <input type="hidden" id="bulk_count" name="bulk_count" value="0">
     <div id="bulk-add-container">
-      <!-- initial one form -->
       <div class="movie-form">
         <label>Title: <input name="title_0" required></label><br>
         <label>Filename: <input name="filename_0"></label><br>
@@ -219,13 +229,11 @@ def require_login():
 
 @flask_app.route("/admin", methods=["GET", "POST"])
 def admin_login():
-    # GET -> show dashboard if logged, else login form
     if request.method == "POST":
         pwd = request.form.get("password")
         if pwd == ADMIN_PASSWORD:
             session.permanent = True
             session["logged"] = True
-            # store a short-lived token in session to include in links/forms
             session["pwd_token"] = pwd
             data = load_movies_local()
             return render_template_string(dashboard_template, movies=data, count=len(data), session=session)
@@ -249,7 +257,6 @@ def admin_edit_movie(index):
     if index >= len(data) or index < 0:
         return "❌ Invalid index"
     if request.method == "POST":
-        # optional: check session pwd_token if you want
         data[index] = {
             "title": request.form["title"],
             "filename": request.form.get("filename", ""),
@@ -261,7 +268,6 @@ def admin_edit_movie(index):
 
 @flask_app.route("/admin/delete/<int:index>")
 def admin_delete_movie(index):
-    # Single delete via link (keeps backward compatibility)
     if not require_login():
         return redirect(url_for('admin_login'))
     data = load_movies_local()
@@ -278,7 +284,6 @@ def admin_bulk_delete():
     selected = request.form.getlist('selected[]')
     if not selected:
         return redirect(url_for('admin_login'))
-    # indices are strings; convert to ints and sort descending to delete safely
     idxs = sorted([int(x) for x in selected], reverse=True)
     data = load_movies_local()
     for idx in idxs:
@@ -295,18 +300,13 @@ def admin_bulk_add():
         count = int(request.form.get('bulk_count', '0'))
     except:
         count = 0
-    # if count is 0, try to detect number of provided title_* keys
     if count <= 0:
-        # find keys like title_0, title_1...
         count = 0
         for key in request.form.keys():
             if key.startswith('title_'):
                 count += 1
     if count == 0:
-        # maybe single default form fields present as title_0 etc (handle minimal case)
-        # if still none, just redirect
         return redirect(url_for('admin_login'))
-
     data = load_movies_local()
     added = 0
     for i in range(count):
@@ -318,7 +318,6 @@ def admin_bulk_add():
         filename = request.form.get(fname_key, "")
         if not title or not file_url:
             continue
-        # duplicate check by file_url
         if any(m.get("file_url") == file_url for m in data):
             continue
         data.append({"title": title.strip(), "filename": filename or "", "file_url": file_url})
@@ -366,9 +365,8 @@ conversation_triggers = [
 ]
 
 # -------------------------
-# Auto-save movie from channel
-# -----------------------
-
+# Auto-save movie from channel or private photo with caption
+# -------------------------
 @app.on_message(filters.channel & filters.photo)
 @app.on_message(filters.photo & filters.private)
 async def save_movie_poster(client, message):
@@ -473,6 +471,3 @@ async def welcome(client, update: ChatMemberUpdated):
 if __name__ == "__main__":
     print("Sara bot starting... (Flask running in background thread)")
     app.run()
-
-
-
