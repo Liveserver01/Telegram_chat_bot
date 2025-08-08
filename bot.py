@@ -203,6 +203,8 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+    try:
+     except Exception as e:
         print("❌ Error loading movie_list.json:", e)
         return []
 
@@ -371,6 +373,7 @@ async def welcome(client, update: ChatMemberUpdated):
         )
 
 app.run()
+
 
 
 
