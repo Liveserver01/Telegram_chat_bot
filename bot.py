@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
+from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request, render_template_string, redirect, session, url_for
 import threading
 import os
@@ -7,10 +7,11 @@ import json
 import requests
 import re
 from fuzzywuzzy import fuzz
+from base64 import b64encode
 from datetime import timedelta
 
 # -------------------------
-# Environment & validation
+# Environment Variables Setup
 # -------------------------
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
@@ -19,51 +20,46 @@ if not ADMIN_PASSWORD:
 _api_id = os.environ.get("API_ID")
 _api_hash = os.environ.get("API_HASH")
 _bot_token = os.environ.get("BOT_TOKEN")
+_channel_id = os.environ.get("CHANNEL_ID")
+_flask_secret_key = os.environ.get("FLASK_SECRET_KEY", "default_secret_key")
+_channel_invite_link = os.environ.get("CHANNEL_INVITE_LINK", "")
 
-if not (_api_id and _api_hash and _bot_token):
-    raise ValueError("❌ API_ID, API_HASH or BOT_TOKEN missing in environment variables!")
+if not (_api_id and _api_hash and _bot_token and _channel_id):
+    raise ValueError("❌ API_ID, API_HASH, BOT_TOKEN or CHANNEL_ID missing in environment variables!")
 
 try:
     API_ID = int(_api_id)
+    CHANNEL_ID = int(_channel_id)
 except Exception:
-    raise ValueError("❌ API_ID must be an integer")
+    raise ValueError("❌ API_ID and CHANNEL_ID must be integers")
 
 API_HASH = _api_hash
 BOT_TOKEN = _bot_token
+FLASK_SECRET_KEY = _flask_secret_key
+CHANNEL_INVITE_LINK = _channel_invite_link
 
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002039183876"))
-CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "")
-
-GITHUB_JSON_URL = "https://raw.githubusercontent.com/Liveserver01/Telegram_chat_bot/3a8246bc555c65359c1d17a89f3b2705ed1b6350/movie_list.json"
 LOCAL_JSON_PATH = "movie_list.json"
 
-FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "1b2e473094dc56a9ba54522c332600b1")
-
 # -------------------------
-# Initialize clients
+# Flask App Setup
 # -------------------------
-app = Client("sara_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 flask_app = Flask(__name__)
 flask_app.secret_key = FLASK_SECRET_KEY
 flask_app.permanent_session_lifetime = timedelta(hours=8)
 
 # -------------------------
-# Helpers: load/save movies
+# Pyrogram Bot Setup
 # -------------------------
-def load_movies_from_github():
-    try:
-        resp = requests.get(GITHUB_JSON_URL, timeout=8)
-        if resp.status_code == 200:
-            return resp.json()
-        print("❌ GitHub JSON fetch failed:", resp.status_code)
-    except Exception as e:
-        print("❌ Error loading movie_list.json from GitHub:", e)
-    try:
-        with open(LOCAL_JSON_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+app = Client("sara_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
+# -------------------------
+# Thread Lock for JSON access
+# -------------------------
+json_lock = threading.Lock()
+
+# -------------------------
+# Movie List Helpers
+# -------------------------
 def load_movies_local():
     try:
         with open(LOCAL_JSON_PATH, "r", encoding="utf-8") as f:
@@ -75,15 +71,13 @@ def save_movies_local(data):
     with open(LOCAL_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-import threading
-json_lock = threading.Lock()
-
 def add_movie_to_json(title, msg_id, filename=None, file_url=None):
     with json_lock:
         try:
             data = load_movies_local()
         except:
             data = []
+
         # Avoid duplicate msg_id or file_url
         if msg_id and any(m.get("msg_id") == msg_id for m in data):
             print(f"Duplicate msg_id {msg_id}, skipping add.")
@@ -91,6 +85,7 @@ def add_movie_to_json(title, msg_id, filename=None, file_url=None):
         if file_url and any(m.get("file_url") == file_url for m in data):
             print(f"Duplicate file_url {file_url}, skipping add.")
             return False
+
         movie_entry = {
             "title": title.strip(),
             "msg_id": msg_id or 0,
@@ -118,7 +113,7 @@ def parse_caption(caption_text):
     return title, download_link
 
 # -------------------------
-# Admin HTML Templates
+# Flask Routes - Admin Panel
 # -------------------------
 login_template = '''
 <!doctype html>
@@ -242,9 +237,6 @@ edit_template = '''
 </html>
 '''
 
-# -------------------------
-# Flask routes (admin)
-# -------------------------
 def require_login():
     return session.get("logged", False)
 
@@ -347,179 +339,170 @@ def admin_bulk_add():
     return redirect(url_for('admin_login'))
 
 # -------------------------
-# Other Flask routes (status)
+# Flask Routes - Misc
 # -------------------------
 @flask_app.route("/")
 def home():
-    return "✅ Sara is alive via Render & GitHub!"
+    return "✅ Sara bot is alive! (Flask running)"
 
 @flask_app.route("/movies")
 def get_movies():
-    data = load_movies_from_github()
+    data = load_movies_local()
     return {"count": len(data), "movies": data}
 
-# Run Flask in a separate daemon thread
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))
-    flask_app.run(host="0.0.0.0", port=port)
-
-threading.Thread(target=run_flask, daemon=True).start()
-
 # -------------------------
-# Conversation triggers
+# Bot Conversation Triggers
 # -------------------------
 conversation_triggers = [
-    ("good night", "Good night ji! Sweet dreams 🛌 ~ Apki Sara"),
-    ("good morning", "Good morning! Naya din, nayi movie 🎥"),
+    ("good night", "Good night ji! Sweet dreams 💤 ~ Apki Sara"),
+    ("good morning", "Good morning! Naya din, nayi movie 🎬"),
     ("thank", "Arey koi baat nahi ji! ❤️"),
     ("love you", "Main bhi aapko movie ke saath saath pyaar karti hoon 😄"),
     ("hello", "Hello ji! Kaise ho aap?"),
     ("hi", "Hi hi! Sara yahan hai aapke liye."),
+    ("kya kar rahe ho", "Bas aapke liye movies search kar rahi hoon."),
     ("bored", "Toh ek dhamakedar movie dekhte hain!"),
-    ("movie batao", "Aap bas naam likho, main bhejti hoon!"),
+    ("kaisi ho", "Main acchi hoon! Aap sunao?"),
+    ("kya haal hai", "Sab badiya! Aapke liye movie ready hai kya?"),
+    ("mood off", "Mood thik karte hain ek zabardast movie se!"),
+    ("party", "Movie + Popcorn = Best Party!"),
+    ("movie batao", "Aap bas naam batao, main bhejti hoon!"),
     ("acha", "Bilkul sahi! Ab movie ka naam batao."),
     ("ok", "Chaliye fir! Movie ka naam likhiye."),
+    ("arey", "Kya hua ji? Movie chahiye kya?"),
     ("haan", "Toh movie name likho fir!"),
     ("nahi", "Thik hai fir jab chahiye ho toh zarur batana."),
-    ("kya dekh rahe ho", "Main toh sirf movie files dekh rahi ho 😄")
+    ("kahan se ho", "Main Telegram ki duniya se hoon, Sara naam hai mera!"),
+    ("khana khaya", "Main bot hoon, movie meri khuraak hai 😋"),
+    ("kya dekh rahe ho", "Main toh sirf movie files dekh rahi hoon 😄"),
+    ("kya kar rahi ho", "Bas aapke liye movies search kar rahi hoon."),
 ]
 
 # -------------------------
-# Auto-save movie from channel or private photo with caption
+# User message history to prevent spam replies
 # -------------------------
-@app.on_message(filters.channel & filters.photo)
-@app.on_message(filters.photo & filters.private)
-async def save_movie_poster(client, message):
-    try:
-        caption = message.caption or ""
-        title, download_link = parse_caption(caption)
-        if not title or not download_link:
-            print("Title or download link missing, skipping")
-            return
-
-        movies = load_movies_local()
-        if any(m.get("file_url") == download_link for m in movies):
-            print("Movie already exists, skipping:", title)
-            return
-
-        movies.append({
-            "title": title,
-            "filename": "",
-            "file_url": download_link
-        })
-        save_movies_local(movies)
-        print(f"✅ Added movie: {title}")
-
-    except Exception as e:
-        print("Error saving movie poster:", e)
-
-# -------------------------
-# New handler: user sends document or video in private chat
-# Forward it to CHANNEL_ID and save msg_id and details in JSON
-# -------------------------
-@app.on_message((filters.document | filters.video) & filters.private)
-async def handle_file(client, message):
-    title = message.caption or message.text or "Untitled"
-    filename = None
-    file_id = None
-
-    if message.document:
-        filename = message.document.file_name
-        file_id = message.document.file_id
-    elif message.video:
-        filename = message.video.file_name
-        file_id = message.video.file_id
-
-    try:
-        forwarded_msg = await message.forward(CHANNEL_ID)
-        msg_id = forwarded_msg.message_id
-        file_url = file_id
-    except Exception as e:
-        print("Forwarding to channel failed:", e)
-        msg_id = message.message_id
-        file_url = file_id
-
-    added = add_movie_to_json(title, msg_id, filename, file_url)
-
-    if added:
-        await message.reply_text("✅ Movie JSON में save हो गई 📁")
-    else:
-        await message.reply_text("⚠️ ये movie पहले से JSON में मौजूद है।")
+user_message_history = {}
 
 # -------------------------
 # Bot Handlers
 # -------------------------
 @app.on_message(filters.command("start"))
-async def start_handler(client, message):
-    user = message.from_user.first_name if message.from_user else "Guest"
-    channel_button_url = CHANNEL_INVITE_LINK if CHANNEL_INVITE_LINK else f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
+async def start(client, message):
+    user = message.from_user.first_name if message.from_user else "Friend"
     await message.reply_text(
-        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\nMovie ka naam bhejiye, main bhejti hoon!",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📺 Channel", url=channel_button_url)]])
+        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\nBas movie ka naam bhejiye... main dhoond kar de doongi!\n\n📺 Hamara channel invite link: {CHANNEL_INVITE_LINK}",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📺 Channel Join Karein", url=CHANNEL_INVITE_LINK)]]
+        ),
+        parse_mode="markdown"
     )
 
-@app.on_message(filters.text & (filters.private | filters.group | filters.channel))
+@app.on_message((filters.document | filters.video) & filters.private)
+async def handle_file(client, message):
+    # Use the caption or text as title
+    title = message.caption or message.text or "Untitled"
+    filename = message.document.file_name if message.document else message.video.file_name if message.video else ""
+    # Save movie using local json add function
+    added = add_movie_to_json(title, message.id, filename=filename)
+    if added:
+        await message.reply_text("✅ Movie JSON में save हो गई 📁")
+    else:
+        await message.reply_text("⚠️ Movie पहले से मौजूद है।")
+
+@app.on_message(filters.text & (filters.private | filters.group))
 async def handle_text(client, message):
     if not message.from_user or message.from_user.is_bot:
         return
-
     text = message.text.lower().strip()
     if text.startswith("/"):
         return
 
-    for key, reply in conversation_triggers:
-        if key in text:
-            await message.reply_text(reply)
-            return
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    if user_id not in user_message_history:
+        user_message_history[user_id] = {}
+
+    user_msgs = user_message_history[user_id]
+    user_msgs[text] = user_msgs.get(text, 0) + 1
+    # Simple spam filter - max 3 times per text
+    if user_msgs[text] > 3:
+        return
+
+    # Check conversation triggers only in private chat
+    if message.chat.type == "private":
+        for keyword, reply in conversation_triggers:
+            if keyword in text:
+                await message.reply_text(reply)
+                return
+
+    # Avoid common spam/search terms
+    stop_words = {
+        "facebook", "instagram", "youtube", "tiktok", "whatsapp", "google", "telegram",
+        "game", "gaming", "terabox", "feedback", "dubbed", "emoji", "streaming", "link",
+        "romance", "romantic", "status", "application", "install", "android", "click",
+        "language", "platform", "channel", "online", "comedy", "movies", "movie", "bhai",
+        "bhejo", "bro", "hindi", "english", "south"
+    }
+    if any(w in text for w in stop_words):
+        return
 
     try:
-        data = load_movies_from_github()
-        if not data:
-            data = load_movies_local()
-
+        data = load_movies_local()
         best_match = None
         best_score = 0
         for movie in data:
-            title = movie.get("title", "").lower()
-            score = fuzz.partial_ratio(text, title)
+            score = fuzz.partial_ratio(text, movie["title"].lower())
             if score > best_score and score > 70:
                 best_score = score
                 best_match = movie
 
         if best_match:
-            caption = f"🎬 *{best_match.get('title','Unknown')}*\n📁 Filename: `{best_match.get('filename', 'N/A')}`"
-            await message.reply_video(best_match.get("file_url"), caption=caption, quote=True)
+            # Forward message by msg_id or send file_url
+            if best_match.get("msg_id", 0) > 0:
+                await client.forward_messages(chat_id, CHANNEL_ID, best_match["msg_id"])
+            elif best_match.get("file_url"):
+                await client.send_message(chat_id, f"यहाँ आपकी movie है: {best_match['file_url']}")
+            else:
+                await client.send_message(chat_id, "माफ़ कीजिये, movie नहीं मिली।")
             return
-
-        try:
-            async for msg in app.search_messages(CHANNEL_ID, query=text, filter="video"):
-                await msg.copy(message.chat.id)
-                return
-        except Exception as e:
-            print("Channel search error (ignored):", e)
-
     except Exception as e:
-        print("Error fetching/parsing movie list or searching:", e)
+        print("Search Error in JSON:", e)
+
+    try:
+        async for msg in app.get_chat_history(CHANNEL_ID, limit=1000):
+            if msg.caption and fuzz.partial_ratio(text, msg.caption.lower()) > 75:
+                await msg.forward(chat_id)
+                return
+    except Exception as e:
+        print("Search Error in Channel:", e)
 
     if message.chat.type == "private":
-        await message.reply_text("😔 Sorry ji... ye movie abhi available nahi hai.\nRequest bhej dijiye, main try karungi jaldi se lana 💕")
+        if any(w in text for w in ["upload", "movie chahiye", "please", "req"]):
+            await message.reply_text("🍿 Ok ji! Aapki request note kar li gayi hai, jald hi upload karungi 🥰")
+        else:
+            await message.reply_text("😔 Sorry ji... wo movie abhi upload nahi hui hai.\nRequest bhej dijiye, main koshish karungi jald lane ki 💕")
 
 @app.on_chat_member_updated()
 async def welcome(client, update: ChatMemberUpdated):
-    try:
-        new = getattr(update, "new_chat_member", None)
-        if new and not new.user.is_bot:
-            name = new.user.first_name
-            await client.send_message(
-                chat_id=update.chat.id,
-                text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💅‍♀️\nMovie chahiye toh bas naam likho!"
-            )
-    except Exception as e:
-        print("Welcome handler error:", e)
+    if update.new_chat_member and not update.new_chat_member.user.is_bot:
+        name = update.new_chat_member.user.first_name
+        await client.send_message(
+            chat_id=update.chat.id,
+            text=f"🎀 Hi {name} ji! Welcome to our group 🎥\nMain *Sara* hoon — yahan ki movie wali dost 💁‍♀️\nKoi movie chahiye toh bas naam boliye ❤️",
+            parse_mode="markdown"
+        )
 
 # -------------------------
-# Start the bot
+# Flask app background thread
+# -------------------------
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+
+threading.Thread(target=run_flask).start()
+
+# -------------------------
+# Start Bot
 # -------------------------
 if __name__ == "__main__":
-    print("Sara bot starting... (Flask running in background thread)")
     app.run()
