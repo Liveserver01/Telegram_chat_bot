@@ -1,4 +1,4 @@
-# sara_bot_fixed.py
+# sara_bot_fixed.py 
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
 from flask import Flask, request, render_template_string, redirect
@@ -30,7 +30,7 @@ except Exception:
 API_HASH = _api_hash
 BOT_TOKEN = _bot_token
 
-# Optional channel config (use invite link if provided)
+# Optional channel config
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002039183876"))
 CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "")
 
@@ -143,7 +143,7 @@ def admin_delete_movie(index):
     save_movies_local(data)
     return redirect(f"/admin?password={pwd}")
 
-# Run Flask in a separate daemon thread so Pyrogram can run in main thread
+# Run Flask in background thread
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     flask_app.run(host="0.0.0.0", port=port)
@@ -171,12 +171,44 @@ conversation_triggers = [
 ]
 
 # -------------------------
+# Auto-save movie from channel
+# -------------------------
+@app.on_message(filters.channel & (filters.video | filters.document))
+async def save_movie_from_channel(client, message):
+    try:
+        title = message.caption or (message.video.file_name if message.video else message.document.file_name)
+        filename = message.video.file_name if message.video else message.document.file_name
+        file_id = message.video.file_id if message.video else message.document.file_id
+
+        if not title:
+            print("⚠️ Title missing, skipping...")
+            return
+
+        movies = load_movies_local()
+
+        for movie in movies:
+            if movie.get("file_url") == file_id:
+                print("ℹ️ Movie already in list, skipping:", title)
+                return
+
+        movies.append({
+            "title": title.strip(),
+            "filename": filename or "",
+            "file_url": file_id
+        })
+
+        save_movies_local(movies)
+        print(f"✅ Added movie: {title}")
+
+    except Exception as e:
+        print("❌ Error saving movie:", e)
+
+# -------------------------
 # Bot Handlers
 # -------------------------
 @app.on_message(filters.command("start"))
 async def start_handler(client, message):
     user = message.from_user.first_name if message.from_user else "Guest"
-    # prefer invite link if available
     channel_button_url = CHANNEL_INVITE_LINK if CHANNEL_INVITE_LINK else f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
     await message.reply_text(
         f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\nMovie ka naam bhejiye, main bhejti hoon!",
@@ -198,7 +230,6 @@ async def handle_text(client, message):
             return
 
     try:
-        # try github first, fallback to local
         data = load_movies_from_github()
         if not data:
             data = load_movies_local()
@@ -214,18 +245,14 @@ async def handle_text(client, message):
 
         if best_match:
             caption = f"🎬 *{best_match.get('title','Unknown')}*\n📁 Filename: `{best_match.get('filename', 'N/A')}`"
-            # file_url should be a direct video URL or telegram file_id
             await message.reply_video(best_match.get("file_url"), caption=caption, quote=True)
             return
 
-        # fallback: search the channel for video messages (if bot has rights)
         try:
             async for msg in app.search_messages(CHANNEL_ID, query=text, filter="video"):
-                # copy found media to user
                 await msg.copy(message.chat.id)
                 return
         except Exception as e:
-            # search might fail if bot not allowed; ignore
             print("Channel search error (ignored):", e)
 
     except Exception as e:
@@ -237,7 +264,6 @@ async def handle_text(client, message):
 @app.on_chat_member_updated()
 async def welcome(client, update: ChatMemberUpdated):
     try:
-        # pyrogram ChatMemberUpdated may have new_chat_member attribute in some versions
         new = getattr(update, "new_chat_member", None)
         if new and not new.user.is_bot:
             name = new.user.first_name
@@ -249,7 +275,7 @@ async def welcome(client, update: ChatMemberUpdated):
         print("Welcome handler error:", e)
 
 # -------------------------
-# Start the bot (blocking)
+# Start the bot
 # -------------------------
 if __name__ == "__main__":
     print("Sara bot starting... (Flask running in background thread)")
