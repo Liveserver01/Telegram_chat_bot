@@ -370,43 +370,31 @@ conversation_triggers = [
 # -----------------------
 
 @app.on_message(filters.channel & filters.photo)
+@app.on_message(filters.photo & filters.private)
 async def save_movie_poster(client, message):
     try:
         caption = message.caption or ""
-        if not caption:
-            print("⚠️ Caption missing in photo message, skipping...")
+        title, download_link = parse_caption(caption)
+        if not title or not download_link:
+            print("Title or download link missing, skipping")
             return
-
-        # Caption से पहला URL खोजो
-        urls = re.findall(r'(https?://\S+)', caption)
-        if not urls:
-            print("⚠️ No URL found in caption of photo message, skipping...")
-            return
-        download_link = urls[0].strip()
-
-        # Caption की पहली लाइन को Title मानो
-        title = caption.split('\n')[0].strip()
 
         movies = load_movies_local()
+        # Duplicate check on download link
+        if any(m.get("file_url") == download_link for m in movies):
+            print("Movie already exists, skipping:", title)
+            return
 
-        # Duplicate check: file_url से मेल खाता हो तो न जोड़ो
-        for movie in movies:
-            if movie.get("file_url") == download_link:
-                print("ℹ️ Movie link already exists in JSON, skipping:", title)
-                return
-
-        # नई movie add करो
         movies.append({
             "title": title,
-            "filename": "",  # photo के case में filename नहीं होता
+            "filename": "",  # optional
             "file_url": download_link
         })
-
         save_movies_local(movies)
-        print(f"✅ Added movie poster from photo message: {title}")
+        print(f"✅ Added movie: {title}")
 
     except Exception as e:
-        print("❌ Error saving movie poster:", e)
+        print("Error saving movie poster:", e)
 
 # -------------------------
 # Bot Handlers
@@ -485,5 +473,6 @@ async def welcome(client, update: ChatMemberUpdated):
 if __name__ == "__main__":
     print("Sara bot starting... (Flask running in background thread)")
     app.run()
+
 
 
