@@ -1,3 +1,6 @@
+[![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)]
+
+
 # 🎬 Telegram Movie Bot – Admin Panel, Bulk Management & Auto-Save  
 
 A high-performance Telegram bot built with **Pyrogram + Flask**, designed for managing and sharing movies easily.  
