@@ -60,6 +60,24 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 
 ---
 
+## 🌐 Connect with Me
+
+<p align="left">
+  <a href="https://facebook.com/virendrachauhan012" target="_blank">
+    <img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white" />
+  </a>
+  <a href="https://youtube.com/@Technical-hack-guide" target="_blank">
+    <img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" />
+  </a>
+  <a href="https://www.threads.net/@virendra_chauhan_1" target="_blank">
+    <img src="https://img.shields.io/badge/Threads-000000?style=for-the-badge&logo=threads&logoColor=white" />
+  </a>
+  <a href="https://instagram.com/virendra_chauhan_1" target="_blank">
+    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" />
+  </a>
+</p>
+
+
 ## 📜 License  
 
 MIT License © 2025 VIRENDRA CHAUHAN 
