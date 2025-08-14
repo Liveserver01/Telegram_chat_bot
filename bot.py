@@ -473,14 +473,6 @@ async def start(client, message):
         )
     )
 
-
-        print(f"[INFO] /start used by {user} ({message.from_user.id})")
-
-    except Exception as e:
-        print(f"[ERROR] /start handler failed: {e}")
-
-
-
 # When user sends document/video in private: save to JSON, optionally forward to channel (if enabled)
 @app.on_message((filters.document | filters.video) & filters.private)
 async def handle_file(client, message: Message):
@@ -600,6 +592,7 @@ if __name__ == "__main__":
     logger.info("Flask thread started")
     # run pyrogram bot (blocking)
     app.run()
+
 
 
 
