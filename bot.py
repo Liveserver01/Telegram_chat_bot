@@ -30,7 +30,7 @@ API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = int(_try_channel_id)  # -100...
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "change_me_secret")
-CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "")
+CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "https://t.me/+qYUn4HuS7hRiNTNl")
 
 # GitHub (optional) - if not set, uploads skipped
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -450,10 +450,15 @@ async def start_handler(client, message: Message):
     user = message.from_user.first_name if message.from_user else "Friend"
     invite = CHANNEL_INVITE_LINK or f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
     await message.reply_text(
-        f"👋 Namaste {user} ji!\nMain *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\nBas movie ka naam bhejiye... main dhoond kar de doongi!\n\n📺 Channel: {invite}",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📺 Channel", url=invite)]]),
-        parse_mode="markdown"
-    )
+    f"👋 Namaste {user} ji!\n"
+    f"Main *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\n"
+    f"Bas movie ka naam bhejiye... main dhoond kar de doongi!\n\n"
+    f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n"
+    f"📺 Channel: {invite}",
+    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📺 Channel", url=invite)]]),
+    parse_mode="markdown"
+)
+
 
 # When user sends document/video in private: save to JSON, optionally forward to channel (if enabled)
 @app.on_message((filters.document | filters.video) & filters.private)
@@ -574,3 +579,4 @@ if __name__ == "__main__":
     logger.info("Flask thread started")
     # run pyrogram bot (blocking)
     app.run()
+
