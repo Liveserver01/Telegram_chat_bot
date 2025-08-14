@@ -472,7 +472,7 @@
         "filename": "",
         "file_url": "https://pub-1f2446239a904e2fae6cb1b03e052aa4.r2.dev/Dada%202023%20720p%20HEVC%20UnCut%20WEB-DL%20[Hindi+Tamil]%20x265%20ESub-Vegamovies.to.mkv",
         "msg_id": 0
-     },
+    },
     {
         "title": "Raid 2",
         "filename": "",
@@ -551,7 +551,8 @@
         "file_url": "https://pub-9387b3a386bd41eeb7b8d70a9e0a5071.r2.dev/Phalana.Abbayi.Phalana.Ammayi.2023.720p.HEVC.WEB-DL.HIN-TEL.x265.ESub.Vegamovies.to.mkv",
         "msg_id": 0
     },
-    {   "title": "Hamari Adhuri Kahani",
+    {
+        "title": "Hamari Adhuri Kahani",
         "filename": "",
         "file_url": "https://pub-0c0591da7ecb4dd3844853b0095fd27f.r2.dev/Hamari%20Adhuri%20Kahani%202015%20BluRay%20720p%20Hindi%20AAC%205.1%20x264%20ESub%20-%20Vegamovies.NL.mkv",
         "msg_id": 0
@@ -674,6 +675,12 @@
         "title": "Vaazhi",
         "filename": "",
         "file_url": "https://pub-94edc8807dc34ffbbc031926e332ed15.r2.dev/Vaazhai.2024.WEB-DL.Dual.ORG.720p.x264.Vegamovies.is.mkv",
+        "msg_id": 0
+    },
+    {
+        "title": "Coolie 2025",
+        "filename": "",
+        "file_url": "https://pixeldrain.dev/api/file/vnFiwbr9?download",
         "msg_id": 0
     }
 ]
