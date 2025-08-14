@@ -446,36 +446,33 @@ conversation_triggers = [
 user_message_history = {}
 
 @app.on_message(filters.command("start"))
-async def start_handler(client, message: Message):
+async def start(client, message):
+    user = message.from_user.first_name or "User"
+
+    # Agar invite link given hai to use, warna c/ID se banaye
     try:
-        user = message.from_user.first_name if message.from_user else "Friend"
+        if CHANNEL_INVITE_LINK:
+            channel_button_url = CHANNEL_INVITE_LINK
+        elif CHANNEL_ID and CHANNEL_ID.startswith("-100"):
+            channel_button_url = f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
+        else:
+            channel_button_url = "https://t.me"  # fallback link
+    except Exception as e:
+        print(f"Error in link generation: {e}")
+        channel_button_url = "https://t.me"
 
-        # Invite link safe handling
-        invite = None
-        if os.environ.get("CHANNEL_INVITE_LINK"):
-            invite = os.environ["CHANNEL_INVITE_LINK"]
-        elif os.environ.get("CHANNEL_ID"):
-            ch_id = str(os.environ["CHANNEL_ID"])
-            if ch_id.startswith("-100"):  # Private supergroup/channel
-                invite = f"https://t.me/c/{ch_id[4:]}"
-            else:
-                invite = f"https://t.me/{ch_id}"
-
-        if not invite:
-            invite = "https://t.me/"  # fallback
-
-        # Reply message
-        await message.reply_text(
-            f"👋 Namaste {user} ji!\n"
-            f"Main *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\n"
-            f"Bas movie ka naam bhejiye... main dhoond kar de doongi!\n\n"
-            f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n"
-            f"📺 Channel: {invite}",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("📺 Channel", url=invite)]]
-            ),
-            parse_mode="markdown"
+    await message.reply_text(
+        f"👋 Namaste {user} ji!\n"
+        f"Main *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\n"
+        f"Movie ka naam bhejiye, main bhejti hoon!"
+        f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("📺 Channel", url=channel_button_url)]
+            ]
         )
+    )
+
 
         print(f"[INFO] /start used by {user} ({message.from_user.id})")
 
@@ -603,5 +600,6 @@ if __name__ == "__main__":
     logger.info("Flask thread started")
     # run pyrogram bot (blocking)
     app.run()
+
 
 
