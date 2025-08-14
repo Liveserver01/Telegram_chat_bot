@@ -447,17 +447,41 @@ user_message_history = {}
 
 @app.on_message(filters.command("start"))
 async def start_handler(client, message: Message):
-    user = message.from_user.first_name if message.from_user else "Friend"
-    invite = CHANNEL_INVITE_LINK or f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
-    await message.reply_text(
-    f"👋 Namaste {user} ji!\n"
-    f"Main *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\n"
-    f"Bas movie ka naam bhejiye... main dhoond kar de doongi!\n\n"
-    f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n"
-    f"📺 Channel: {invite}",
-    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📺 Channel", url=invite)]]),
-    parse_mode="markdown"
-)
+    try:
+        user = message.from_user.first_name if message.from_user else "Friend"
+
+        # Invite link safe handling
+        invite = None
+        if os.environ.get("CHANNEL_INVITE_LINK"):
+            invite = os.environ["CHANNEL_INVITE_LINK"]
+        elif os.environ.get("CHANNEL_ID"):
+            ch_id = str(os.environ["CHANNEL_ID"])
+            if ch_id.startswith("-100"):  # Private supergroup/channel
+                invite = f"https://t.me/c/{ch_id[4:]}"
+            else:
+                invite = f"https://t.me/{ch_id}"
+
+        if not invite:
+            invite = "https://t.me/"  # fallback
+
+        # Reply message
+        await message.reply_text(
+            f"👋 Namaste {user} ji!\n"
+            f"Main *Sara* hoon — aapki movie wali dost 💁‍♀️🎥\n"
+            f"Bas movie ka naam bhejiye... main dhoond kar de doongi!\n\n"
+            f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n"
+            f"📺 Channel: {invite}",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("📺 Channel", url=invite)]]
+            ),
+            parse_mode="markdown"
+        )
+
+        print(f"[INFO] /start used by {user} ({message.from_user.id})")
+
+    except Exception as e:
+        print(f"[ERROR] /start handler failed: {e}")
+
 
 
 # When user sends document/video in private: save to JSON, optionally forward to channel (if enabled)
@@ -579,4 +603,5 @@ if __name__ == "__main__":
     logger.info("Flask thread started")
     # run pyrogram bot (blocking)
     app.run()
+
 
