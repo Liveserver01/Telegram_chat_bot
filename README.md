@@ -1,4 +1,4 @@
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
@@ -8,7 +8,7 @@
 A high-performance Telegram bot built with **Pyrogram + Flask**, designed for managing and sharing movies easily.  
 Perfect for personal collections, streaming channels, or private movie-sharing groups.
 
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
@@ -36,7 +36,7 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 - 📝 **Activity Logs**  
   All admin actions are recorded in `bot.log` for transparency and troubleshooting.  
 
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
@@ -52,7 +52,7 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 └── requirements.txt # Dependencies
 
 
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
@@ -70,7 +70,7 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 | `GITHUB_FILE_PATH`    | Path to `movie_list.json` in repo |
 | `GITHUB_BRANCH`       | Branch name (default: `main`) |
 
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 <p align="left">
@@ -95,7 +95,7 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 ## 📜 License  
 
 MIT License © 2025 VIRENDRA CHAUHAN 
-<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+<a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
