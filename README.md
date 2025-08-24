@@ -8,7 +8,9 @@
 A high-performance Telegram bot built with **Pyrogram + Flask**, designed for managing and sharing movies easily.  
 Perfect for personal collections, streaming channels, or private movie-sharing groups.
 
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 
 
 ## 🚀 Features  
@@ -34,7 +36,9 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 - 📝 **Activity Logs**  
   All admin actions are recorded in `bot.log` for transparency and troubleshooting.  
 
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 
 ## 📂 File Structure  
 
@@ -48,7 +52,9 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 └── requirements.txt # Dependencies
 
 
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 
 ## ⚙ Environment Variables  
 
@@ -64,8 +70,9 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 | `GITHUB_FILE_PATH`    | Path to `movie_list.json` in repo |
 | `GITHUB_BRANCH`       | Branch name (default: `main`) |
 
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
-
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 <p align="left">
   <a href="https://facebook.com/virendrachauhan012" target="_blank">
     <img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white" />
@@ -88,6 +95,8 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 ## 📜 License  
 
 MIT License © 2025 VIRENDRA CHAUHAN 
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 
 💡 *Easily manage, share, and store your movie collection without hassle!*  
