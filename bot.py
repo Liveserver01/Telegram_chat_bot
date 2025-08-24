@@ -43,19 +43,32 @@ SETTINGS_PATH = "settings.json"
 LOG_FILE = "bot.log"
 
 # -------------------------
-# Logging to file
+# Logger बनाओ
 # -------------------------
 logger = logging.getLogger("sara_bot")
 logger.setLevel(logging.INFO)
-fh = logging.FileHandler(LOG_FILE)
-fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-logger.addHandler(fh)
-# Also console
-ch = logging.StreamHandler()
-ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-logger.addHandler(ch)
 
+# 1) File Handler
+fh = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")   # 'a' = append mode
+fh.setLevel(logging.INFO)
+fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+
+# 2) Console Handler
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+
+# Duplicate handlers से बचने के लिए पहले clear करो
+if not logger.handlers:
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+
+# -------------------------
+# Test log
+# -------------------------
 logger.info("Starting Sara bot...")
+logger.warning("Warning test message...")
+logger.error("Error test message...")
 
 # -------------------------
 # Flask app
@@ -592,6 +605,7 @@ if __name__ == "__main__":
     logger.info("Flask thread started")
     # run pyrogram bot (blocking)
     app.run()
+
 
 
 
