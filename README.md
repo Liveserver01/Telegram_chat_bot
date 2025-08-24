@@ -1,4 +1,6 @@
-![Bot: created by VIRENDRA CHAUHAN](https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge)
+<a href="https://github.com/Liveserver01/Tech_by_veer" target="_blank">
+  <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
+</a>
 
 
 # 🎬 Telegram Movie Bot – Admin Panel, Bulk Management & Auto-Save  
