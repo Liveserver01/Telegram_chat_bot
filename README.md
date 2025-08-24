@@ -86,8 +86,14 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
   <a href="https://www.threads.net/@virendra_chauhan_1" target="_blank">
     <img src="https://img.shields.io/badge/Threads-000000?style=for-the-badge&logo=threads&logoColor=white" />
   </a>
-<a href="https://instagram.com/virendra_chauhan_1" target="_blank">
-  <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram" />
+<a href="https://instagram.com/virendra_chauhan_1" target="_blank" 
+   style="display:inline-block; text-decoration:none; 
+          background: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7); 
+          color:white; padding:10px 20px; border-radius:8px; 
+          font-family:sans-serif; font-weight:bold;">
+  <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" 
+       alt="Instagram" style="height:20px; vertical-align:middle; margin-right:8px;">
+  Instagram
 </a>
 </p>
 
