@@ -72,8 +72,8 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
     <img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" />
   </a>
   <a href="https://t.me/TechnicalHackGuide" target="_blank">
-  <img src="https://img.shields.io/badge/Telegram-FF0000?style=for-the-badge&logo=telegram&logoColor=white" />
-  </a>
+  <img src="https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" />
+</a>
   <a href="https://www.threads.net/@virendra_chauhan_1" target="_blank">
     <img src="https://img.shields.io/badge/Threads-000000?style=for-the-badge&logo=threads&logoColor=white" />
   </a>
