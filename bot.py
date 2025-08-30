@@ -12,6 +12,8 @@ from datetime import timedelta
 from base64 import b64encode
 import logging
 import time
+from urllib.parse import quote_plus  # NEW
+from typing import List, Dict, Tuple, Set  # NEW
 
 # -------------------------
 # Config / Env
@@ -31,6 +33,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = int(_try_channel_id)  # -100...
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "change_me_secret")
 CHANNEL_INVITE_LINK = os.environ.get("CHANNEL_INVITE_LINK", "https://t.me/+qYUn4HuS7hRiNTNl")
+
+# NEW: OMDb API for legal posters
+OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "").strip()
 
 # GitHub (optional) - if not set, uploads skipped
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -113,7 +118,6 @@ def load_settings():
         if os.path.exists(SETTINGS_PATH):
             with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
                 s = json.load(f)
-                # ensure key exists
                 if "auto_forward" not in s:
                     s["auto_forward"] = False
                 return s
@@ -150,7 +154,6 @@ def upload_json_to_github(data):
         return False
     try:
         sha = github_get_file_sha()
-        # prepare
         content_str = json.dumps(data, indent=4, ensure_ascii=False)
         content_b64 = b64encode(content_str.encode("utf-8")).decode("utf-8")
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE_PATH}"
@@ -174,9 +177,7 @@ def upload_json_to_github(data):
 def add_movie_to_json(title, msg_id=None, filename=None, file_url=None):
     with json_lock:
         data = load_movies_local()
-        # normalize title
         title = (title or "Untitled").strip()
-        # duplicates
         if msg_id and any(int(m.get("msg_id", 0)) == int(msg_id) and m.get("msg_id", 0) != 0 for m in data):
             logger.info("Duplicate msg_id %s, skipping", msg_id)
             return False
@@ -208,6 +209,73 @@ def parse_caption(caption_text):
         break
     urls = re.findall(r'https?://\S+', caption_text)
     return title, (urls[0] if urls else None)
+
+# -------------------------
+# Text Normalization & Matching (NEW)
+# -------------------------
+STOPWORDS = {
+    "the","and","a","an","of","in","on","at","to","for","by","with","from","part","pt","episode","ep","season","s","disk","disc","cd","movie","film","full","hd","hq","1080p","720p"
+}
+
+def normalize_title(s: str) -> str:
+    s = s.lower()
+    s = re.sub(r"[\[\]\(\)\{\}\|:_\-\.]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+def token_words(s: str) -> List[str]:
+    s = normalize_title(s)
+    words = re.findall(r"[a-z0-9]+", s)
+    return [w for w in words if w not in STOPWORDS]
+
+def base_series_title(s: str) -> str:
+    """remove common part/ep/season markers to group series/parts together"""
+    s = normalize_title(s)
+    s = re.sub(r"\b(part|pt|episode|ep|season|s)\s*\d+\b", "", s)
+    s = re.sub(r"\b\d{4}\b", "", s)  # remove standalone year
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+def is_exact_or_5words_match(query: str, title: str) -> Tuple[bool, int]:
+    qn = normalize_title(query)
+    tn = normalize_title(title)
+    if qn == tn:
+        return True, 999  # strong
+    qset = set(token_words(qn))
+    tset = set(token_words(tn))
+    overlap = len(qset & tset)
+    return (overlap >= 5), overlap
+
+# -------------------------
+# OMDb Poster (LEGAL) (NEW)
+# -------------------------
+def get_poster_url_omdb(title: str) -> str:
+    if not OMDB_API_KEY:
+        return ""
+    try:
+        # First try exact title
+        url = f"https://www.omdbapi.com/?apikey={OMDB_API_KEY}&t={quote_plus(title)}"
+        r = requests.get(url, timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            poster = data.get("Poster", "N/A")
+            if poster and poster != "N/A":
+                return poster
+        # Fallback: search and pick best
+        url = f"https://www.omdbapi.com/?apikey={OMDB_API_KEY}&s={quote_plus(title)}"
+        r = requests.get(url, timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            results = data.get("Search", []) or []
+            if results:
+                # pick first valid poster
+                for it in results:
+                    p = it.get("Poster", "")
+                    if p and p != "N/A":
+                        return p
+    except Exception:
+        logger.exception("OMDb poster fetch failed")
+    return ""
 
 # -------------------------
 # Flask templates (fixed: don't use enumerate)
@@ -461,15 +529,12 @@ user_message_history = {}
 @app.on_message(filters.command("start"))
 async def start(client, message):
     user = message.from_user.first_name or "User"
-
-    # Agar invite link given hai to use, warna c/ID se banaye
     try:
         if CHANNEL_INVITE_LINK:
             channel_button_url = CHANNEL_INVITE_LINK
-        elif CHANNEL_ID and CHANNEL_ID.startswith("-100"):
-            channel_button_url = f"https://t.me/c/{str(CHANNEL_ID)[4:]}"
         else:
-            channel_button_url = "https://t.me"  # fallback link
+            # safe fallback for private/public channel link
+            channel_button_url = "https://t.me"
     except Exception as e:
         print(f"Error in link generation: {e}")
         channel_button_url = "https://t.me"
@@ -477,7 +542,7 @@ async def start(client, message):
     await message.reply_text(
         f"👋 Namaste {user} ji!\n"
         f"Main *Sara* hoon — aapki movie wali dost 💅‍♀️🎥\n"
-        f"Movie ka naam bhejiye, main bhejti hoon!"
+        f"Movie ka naam bhejiye, main bhejti hoon!\n"
         f"🛠️ Bot created by *VIRENDRA CHAUHAN*\n",
         reply_markup=InlineKeyboardMarkup(
             [
@@ -503,18 +568,16 @@ async def handle_file(client, message: Message):
         msg_id_to_save = 0
         file_url = ""
         if settings.get("auto_forward"):
-            # forward to channel and save forwarded msg id
             try:
                 forwarded = await message.forward(CHANNEL_ID)
                 msg_id_to_save = forwarded.message_id
-                file_url = ""  # prefer msg_id
+                file_url = ""
                 logger.info("Forwarded message to channel id=%s msg_id=%s", CHANNEL_ID, msg_id_to_save)
             except Exception as e:
                 logger.exception("Forward to channel failed, will save file_id instead")
                 msg_id_to_save = 0
                 file_url = file_id
         else:
-            # do not forward; save file_id so later bot can send by file_id (if needed)
             msg_id_to_save = 0
             file_url = file_id
         added = add_movie_to_json(title, msg_id=msg_id_to_save, filename=filename, file_url=file_url)
@@ -526,67 +589,175 @@ async def handle_file(client, message: Message):
         logger.exception("handle_file error")
         await message.reply_text("❌ Error while saving movie. Check logs.")
 
+# -------------------------
+# SEND HELPERS (NEW)
+# -------------------------
+async def send_movie_entry(client: Client, chat_id: int, entry: Dict):
+    """Send one movie by msg_id or file_url with neat caption."""
+    title = entry.get("title", "Movie")
+    sent = False
+    # Try forward by msg_id
+    if int(entry.get("msg_id", 0)) > 0:
+        try:
+            await client.forward_messages(chat_id, CHANNEL_ID, entry["msg_id"])
+            sent = True
+        except Exception:
+            logger.exception("forward by msg_id failed")
+    # Else try file_id/url
+    if not sent and entry.get("file_url"):
+        try:
+            await client.send_document(chat_id, entry["file_url"], caption=f"🎬 {title}")
+            sent = True
+        except Exception:
+            logger.exception("send_document failed")
+            try:
+                await client.send_message(chat_id, f"🎬 {title}\n➡️ {entry['file_url']}")
+                sent = True
+            except Exception:
+                logger.exception("send_message fallback failed")
+    return sent
+
+async def send_group_of_movies_with_poster(client: Client, chat_id: int, group: List[Dict], query_title: str):
+    """Send poster (if available) + all matched/related entries (parts/episodes) once."""
+    if not group:
+        return
+    # Poster via OMDb (legal)
+    poster_url = get_poster_url_omdb(query_title or group[0].get("title",""))
+    if poster_url:
+        cap_lines = ["🎬 *" + group[0].get("title","Movie") + "*", "यह एक ही सीरीज़/पार्ट की फाइलें हैं:"]
+        for i, g in enumerate(group, 1):
+            fn = g.get("filename") or g.get("title") or f"Part {i}"
+            cap_lines.append(f"{i}. {fn}")
+        cap_lines.append("\n⚠️ Poster via OMDb")
+        caption = "\n".join(cap_lines)
+        try:
+            await client.send_photo(chat_id, poster_url, caption=caption, parse_mode="markdown")
+        except Exception:
+            logger.exception("send_photo poster failed")
+
+    # Send each entry once (no repeat)
+    seen: Set[Tuple[int,str]] = set()
+    for e in group:
+        key = (int(e.get("msg_id",0)), e.get("file_url",""))
+        if key in seen:
+            continue
+        seen.add(key)
+        await send_movie_entry(client, chat_id, e)
+        await asyncio.sleep(0.4)  # small gap to avoid flood
+
+# -------------------------
+# Text handler (CHANGED: strict matching + multi-send + poster)
+# -------------------------
+import asyncio
+
 @app.on_message(filters.text & (filters.private | filters.group))
 async def handle_text(client, message: Message):
     if not message.from_user or message.from_user.is_bot:
         return
-    text = message.text.lower().strip()
+    text = message.text.strip()
     if text.startswith("/"):
         return
+
     user_id = message.from_user.id
     chat_id = message.chat.id
     # spam protection
     hist = user_message_history.setdefault(user_id, {})
-    hist[text] = hist.get(text, 0) + 1
-    if hist[text] > 3:
+    lt = text.lower()
+    hist[lt] = hist.get(lt, 0) + 1
+    if hist[lt] > 3:
         return
+
     # conversation triggers (only private)
     if message.chat.type == "private":
+        ltl = lt
         for k, r in conversation_triggers:
-            if k in text:
+            if k in ltl:
                 await message.reply_text(r)
                 return
-    # search local JSON
+
+    # 1) Local JSON strict search
     try:
         data = load_movies_local()
-        best = None
-        best_score = 0
-        for m in data:
-            score = fuzz.partial_ratio(text, m.get("title","").lower())
-            if score > best_score and score > 70:
-                best_score = score
-                best = m
-        if best:
-            if int(best.get("msg_id", 0)) > 0:
-                try:
-                    await client.forward_messages(chat_id, CHANNEL_ID, best["msg_id"])
-                    return
-                except Exception:
-                    logger.exception("forward by msg_id failed, trying file_url")
-            if best.get("file_url"):
-                # if file_url is a Telegram file_id we can send_by_file_id
-                try:
-                    await client.send_document(chat_id, best["file_url"], caption=f"🎬 {best.get('title')}")
-                except Exception:
-                    # fallback to simple message
-                    await client.send_message(chat_id, f"यहाँ आपकी movie है: {best.get('file_url')}")
+        if not data:
+            raise ValueError("Empty movie list")
+
+        # Find all matches satisfying exact-or-5-words rule
+        strict_matches: List[Dict] = []
+        overlap_scores: List[Tuple[int, int]] = []  # (idx, score) for reference
+        for idx, m in enumerate(data):
+            ok, score = is_exact_or_5words_match(text, m.get("title",""))
+            if ok:
+                strict_matches.append(m)
+                overlap_scores.append((idx, score))
+
+        if strict_matches:
+            # Group by base series title to send all parts together
+            groups: Dict[str, List[Dict]] = {}
+            for m in strict_matches:
+                key = base_series_title(m.get("title",""))
+                groups.setdefault(key, []).append(m)
+
+            # Sort files in each group nicely (by title then filename)
+            for k in groups:
+                groups[k].sort(key=lambda x: (normalize_title(x.get("title","")), normalize_title(x.get("filename",""))))
+
+            # Decide primary group: the one whose base matches query base or highest overlap
+            query_base = base_series_title(text)
+            primary_key = None
+            if query_base in groups:
+                primary_key = query_base
+            else:
+                # pick group that contains the entry with max overlap score
+                if overlap_scores:
+                    best_idx, _ = max(overlap_scores, key=lambda t: t[1])
+                    best_title = data[best_idx].get("title","")
+                    primary_key = base_series_title(best_title)
+                    if primary_key not in groups:
+                        # fallback to any one
+                        primary_key = list(groups.keys())[0]
+
+            # Send the chosen group first
+            sent_any = False
+            if primary_key:
+                await send_group_of_movies_with_poster(client, chat_id, groups[primary_key], text)
+                sent_any = True
+
+            # Then, if there are other groups (rare), send them too (without repeating)
+            for k, grp in groups.items():
+                if k == primary_key:
+                    continue
+                await send_group_of_movies_with_poster(client, chat_id, grp, grp[0].get("title",""))
+
+            if sent_any:
                 return
     except Exception:
-        logger.exception("Search JSON error")
-    # search recent channel messages captions (fallback)
+        logger.exception("Strict search/group error")
+
+    # 2) Fallback: search recent channel captions but STILL enforce 5-word/exact rule
     try:
-        async for msg in app.get_chat_history(CHANNEL_ID, limit=1000):
-            if msg.caption and fuzz.partial_ratio(text, msg.caption.lower()) > 75:
-                await msg.forward(chat_id)
-                return
+        collected: List[Message] = []
+        async for msg in app.get_chat_history(CHANNEL_ID, limit=600):
+            cap = (msg.caption or "").strip()
+            if not cap:
+                continue
+            ok, _ = is_exact_or_5words_match(text, cap)
+            if ok:
+                collected.append(msg)
+        if collected:
+            # Try to group by base title from caption first line
+            for msg in collected:
+                try:
+                    await msg.forward(chat_id)
+                    await asyncio.sleep(0.3)
+                except Exception:
+                    logger.exception("Fallback forward failed")
+            return
     except Exception:
         logger.exception("Search channel error")
-    # default replies for private chat
+
+    # 3) Default private reply
     if message.chat.type == "private":
-        if any(w in text for w in ["upload", "movie chahiye", "please", "req"]):
-            await message.reply_text("🍿 Ok ji! Aapki request note kar li, jaldi movie bhejti hoon.")
-            return
-        await message.reply_text("क्षमा करें, मुझे आपकी movie समझ नहीं आई। कृपया सही नाम भेजिए।")
+        await message.reply_text("❌ सॉरी, सही मूवी नहीं मिली। कृपया *सही पूरा नाम* भेजें, या कम-से-कम 5 शब्दों के साथ टाइटल लिखें।", parse_mode="markdown")
 
 # -------------------------
 # Run Flask and bot
@@ -596,17 +767,9 @@ def run_flask():
     flask_app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # ensure settings file exists
     if not os.path.exists(SETTINGS_PATH):
         save_settings({"auto_forward": False})
-    # start flask in thread
     t = threading.Thread(target=run_flask, daemon=True)
     t.start()
     logger.info("Flask thread started")
-    # run pyrogram bot (blocking)
     app.run()
-
-
-
-
-
