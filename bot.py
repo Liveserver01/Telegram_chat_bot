@@ -689,11 +689,13 @@ async def handle_text(client, message: Message):
 
         matches: List[Dict] = []
         for m in data:
-            title = m.get("title","")
-            if not title:
-                continue
-            if lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70:
-                matches.append(m)
+    title = m.get("title","")
+    if not title:
+        continue
+
+    # ✅ सिर्फ़ तभी match allow करना जब query 3 अक्षर या उससे ज़्यादा हो
+    if len(lt) >= 3 and (lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70):
+        matches.append(m)
 
         if not matches:
             await message.reply_text("😔 कोई मूवी नहीं मिली।")
