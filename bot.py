@@ -623,16 +623,13 @@ async def send_group_of_movies_with_poster(client: Client, chat_id: int, group: 
     if not group:
         return
 
-    # poster try
     poster_url = ""
     try:
         poster_url = get_poster_url_omdb(query_title or group[0].get("title",""))
     except Exception:
         logger.exception("poster fetch failed")
 
-    # build caption as plain text (NO parse_mode) to avoid parse errors
-    header_title = group[0].get("title", "Movie")
-    cap_lines = [f"🎬 {header_title}", "यह एक ही सीरीज़/पार्ट की फाइलें हैं:"]
+    cap_lines = [f"🎬 Matches for: {query_title}"]
     for i, g in enumerate(group, 1):
         fn = g.get("filename") or g.get("title") or f"Part {i}"
         link = g.get("file_url") or ""
@@ -640,30 +637,16 @@ async def send_group_of_movies_with_poster(client: Client, chat_id: int, group: 
             cap_lines.append(f"{i}. {fn} — {link}")
         else:
             cap_lines.append(f"{i}. {fn}")
-    cap_lines.append("")  # empty line
-    cap_lines.append("⚠️ Poster (legal) via OMDb" if poster_url else "⚠️ Poster not available")
     caption = "\n".join(cap_lines)
 
-    # send poster (plain caption) - if it fails, fallback to sending caption text instead
     if poster_url:
         try:
-            # no parse_mode specified -> plain text caption, avoids markdown parse errors
             await client.send_photo(chat_id, poster_url, caption=caption)
         except Exception:
-            logger.exception("send_photo poster failed")
-            # fallback: send caption and include poster URL as message (so user can click)
-            try:
-                await client.send_message(chat_id, f"{caption}\n\nPoster: {poster_url}")
-            except Exception:
-                logger.exception("fallback send_message with poster_url failed")
+            await client.send_message(chat_id, f"{caption}\n\nPoster: {poster_url}")
     else:
-        # no poster - just send the caption (with links)
-        try:
-            await client.send_message(chat_id, caption)
-        except Exception:
-            logger.exception("send_message caption failed")
+        await client.send_message(chat_id, caption)
 
-    # Send each entry once (no repeat)
     seen: Set[Tuple[int,str]] = set()
     for e in group:
         key = (int(e.get("msg_id",0)), e.get("file_url",""))
@@ -698,75 +681,31 @@ async def handle_text(client, message: Message):
                 await message.reply_text(r)
                 return
 
-    # 1) Local JSON strict search
     try:
         data = load_movies_local()
         if not data:
-            raise ValueError("Empty movie list")
-
-        strict_matches: List[Dict] = []
-        overlap_scores: List[Tuple[int, int]] = []
-        for idx, m in enumerate(data):
-            ok, score = is_exact_or_5words_match(text, m.get("title",""))
-            if ok:
-                strict_matches.append(m)
-                overlap_scores.append((idx, score))
-
-        if strict_matches:
-            groups: Dict[str, List[Dict]] = {}
-            for m in strict_matches:
-                key = base_series_title(m.get("title",""))
-                groups.setdefault(key, []).append(m)
-            for k in groups:
-                groups[k].sort(key=lambda x: (normalize_title(x.get("title","")), normalize_title(x.get("filename",""))))
-            query_base = base_series_title(text)
-            primary_key = None
-            if query_base in groups:
-                primary_key = query_base
-            else:
-                if overlap_scores:
-                    best_idx, _ = max(overlap_scores, key=lambda t: t[1])
-                    best_title = data[best_idx].get("title","")
-                    primary_key = base_series_title(best_title)
-                    if primary_key not in groups:
-                        primary_key = list(groups.keys())[0]
-            sent_any = False
-            if primary_key:
-                await send_group_of_movies_with_poster(client, chat_id, groups[primary_key], text)
-                sent_any = True
-            for k, grp in groups.items():
-                if k == primary_key:
-                    continue
-                await send_group_of_movies_with_poster(client, chat_id, grp, grp[0].get("title",""))
-            if sent_any:
-                return
-    except Exception:
-        logger.exception("Strict search/group error")
-
-    # 2) Fallback: search recent channel captions
-    try:
-        collected: List[Message] = []
-        async for msg in app.get_chat_history(CHANNEL_ID, limit=600):
-            cap = (msg.caption or "").strip()
-            if not cap:
-                continue
-            ok, _ = is_exact_or_5words_match(text, cap)
-            if ok:
-                collected.append(msg)
-        if collected:
-            for msg in collected:
-                try:
-                    await msg.forward(chat_id)
-                    await asyncio.sleep(0.3)
-                except Exception:
-                    logger.exception("Fallback forward failed")
+            await message.reply_text("❌ Movie list empty.")
             return
+
+        matches: List[Dict] = []
+        for m in data:
+            title = m.get("title","")
+            if not title:
+                continue
+            if lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70:
+                matches.append(m)
+
+        if not matches:
+            await message.reply_text("😔 कोई मूवी नहीं मिली।")
+            return
+
+        # सभी matches एक group में भेजे जाएंगे
+        await send_group_of_movies_with_poster(client, chat_id, matches, text)
+
     except Exception:
-        logger.exception("Search channel error")
-
-    if message.chat.type == "private":
-        await message.reply_text("❌ सॉरी, सही मूवी नहीं मिली। कृपया *सही पूरा नाम* भेजें, या कम-से-कम 5 शब्दों के साथ टाइटल लिखें।", parse_mode="markdown")
-
+        logger.exception("handle_text search error")
+        await message.reply_text("⚠️ Error while searching movies.")
+        
 # -------------------------
 # Run Flask and bot
 # -------------------------
