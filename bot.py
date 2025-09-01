@@ -702,7 +702,7 @@ async def handle_text(client, message: Message):
         return
 
 # सभी matches एक group में भेजे जाएंगे
-    await send_group_of_movies_with_poster(client, chat_id, matches, text)
+    await send_group_of_movies_with_poster(client, chat_id, matches, text
 
     except Exception:
         logger.exception("handle_text search error")
