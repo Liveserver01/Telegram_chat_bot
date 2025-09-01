@@ -687,22 +687,22 @@ async def handle_text(client, message: Message):
             await message.reply_text("❌ Movie list empty.")
             return
 
-        matches: List[Dict] = []
-        for m in data:
-    title = m.get("title","")
-    if not title:
-        continue
+    matches: List[Dict] = []
+    for m in data:
+        title = m.get("title", "")
+        if not title:
+            continue
 
     # ✅ सिर्फ़ तभी match allow करना जब query 3 अक्षर या उससे ज़्यादा हो
-    if len(lt) >= 3 and (lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70):
-        matches.append(m)
+        if len(lt) >= 3 and (lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70):
+            matches.append(m)
 
-        if not matches:
-            await message.reply_text("😔 कोई मूवी नहीं मिली।")
-            return
+    if not matches:
+        await message.reply_text("😔 कोई मूवी नहीं मिली।")
+        return
 
-        # सभी matches एक group में भेजे जाएंगे
-        await send_group_of_movies_with_poster(client, chat_id, matches, text)
+# सभी matches एक group में भेजे जाएंगे
+    await send_group_of_movies_with_poster(client, chat_id, matches, text)
 
     except Exception:
         logger.exception("handle_text search error")
