@@ -675,8 +675,7 @@ async def handle_text(client, message: Message):
     triggers_dict = dict(conversation_triggers)  
 
     if lt in triggers_dict:   # 👈 सिर्फ तभी trigger होगा जब पूरा msg वही word है
-        await 
-    message.reply_text(triggers_dict[lt])
+        await message.reply_text(triggers_dict[lt])
         return
     
     # ✅ Step 2: Movie search (only if query has 3+ chars)
