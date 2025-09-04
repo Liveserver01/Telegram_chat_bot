@@ -672,11 +672,13 @@ async def handle_text(client, message: Message):
     lt = text.lower()
 
     # ✅ Step 1: Conversation triggers (friendly replies)
-    for k, r in conversation_triggers:
-        if k in lt:
-            await message.reply_text(r)
-            return   # 👈 यहाँ return ज़रूरी है, वरना नीचे वाला movie search भी चलेगा
+    words = lt.split()   # 👈 अब text को word list में तोड़ दिया
 
+    for k, r in conversation_triggers:
+        if k in words:   # 👈 अब सिर्फ पूरा word match होगा
+            await message.reply_text(r)
+            return   # यहाँ return ज़रूरी है
+    
     # ✅ Step 2: Movie search (only if query has 3+ chars)
     if len(lt) < 3:
         return  # ignore very short messages
