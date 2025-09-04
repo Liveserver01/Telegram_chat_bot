@@ -671,12 +671,11 @@ async def handle_text(client, message: Message):
     chat_id = message.chat.id
     lt = text.lower()
 
-    # ✅ Step 1: Conversation triggers (only in private chat)
-    if message.chat.type == "private":
-        for k, r in conversation_triggers:
-            if k in lt:
-                await message.reply_text(r)
-                return  # return here, no movie search
+    # ✅ Step 1: Conversation triggers (friendly replies)
+    for k, r in conversation_triggers:
+        if k in lt:
+            await message.reply_text(r)
+            return   # 👈 यहाँ return ज़रूरी है, वरना नीचे वाला movie search भी चलेगा
 
     # ✅ Step 2: Movie search (only if query has 3+ chars)
     if len(lt) < 3:
