@@ -669,47 +669,37 @@ async def handle_text(client, message: Message):
 
     user_id = message.from_user.id
     chat_id = message.chat.id
-    hist = user_message_history.setdefault(user_id, {})
     lt = text.lower()
-    hist[lt] = hist.get(lt, 0) + 1
-    if hist[lt] > 3:
-        return
 
-    # ✅ Friendly replies (only in private)
+    # ✅ Step 1: Conversation triggers (only in private chat)
     if message.chat.type == "private":
         for k, r in conversation_triggers:
             if k in lt:
                 await message.reply_text(r)
-                return
+                return  # return here, no movie search
 
-    try:
-        data = load_movies_local()
-        if not data:
-            await message.reply_text("❌ Movie list empty.")
-            return
+    # ✅ Step 2: Movie search (only if query has 3+ chars)
+    if len(lt) < 3:
+        return  # ignore very short messages
 
-        matches: List[Dict] = []
-        for m in data:
-            title = m.get("title", "")
-            if not title:
-                continue
+    data = load_movies_local()
+    if not data:
+        await message.reply_text("😔 अभी मूवी database खाली है।")
+        return
 
-            # ✅ सिर्फ तभी match allow करना जब query 3 अक्षर या उससे ज़्यादा हो
-            if len(lt) >= 3 and (
-                lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70
-            ):
-                matches.append(m)
+    matches: List[Dict] = []
+    for m in data:
+        title = m.get("title", "")
+        if not title:
+            continue
+        if len(lt) >= 3 and (lt in title.lower() or fuzz.token_set_ratio(lt, title.lower()) >= 70):
+            matches.append(m)
 
-        if not matches:
-            await message.reply_text("😔 कोई मूवी नहीं मिली।")
-            return
+    if not matches:
+        await message.reply_text("😔 कोई मूवी नहीं मिली।")
+        return
 
-        # ✅ सब matches group में भेज दो
-        await send_group_of_movies_with_poster(client, chat_id, matches, text)
-
-    except Exception as e:
-        logger.exception("handle_text error")
-        await message.reply_text("❌ Error while processing your request.")
+    await send_group_of_movies_with_poster(client, chat_id, matches, text)
 # -------------------------
 # Run Flask and bot
 # -------------------------
