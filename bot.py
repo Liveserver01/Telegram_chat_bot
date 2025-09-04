@@ -671,13 +671,13 @@ async def handle_text(client, message: Message):
     chat_id = message.chat.id
     lt = text.lower()
 
-    # ✅ Step 1: Conversation triggers (friendly replies)
-    words = lt.split()   # 👈 अब text को word list में तोड़ दिया
+    # ✅ Step 1: Conversation triggers (friendly replies)  
+    triggers_dict = dict(conversation_triggers)  
 
-    for k, r in conversation_triggers:
-        if k in words:   # 👈 अब सिर्फ पूरा word match होगा
-            await message.reply_text(r)
-            return   # यहाँ return ज़रूरी है
+    if lt in triggers_dict:   # 👈 सिर्फ तभी trigger होगा जब पूरा msg वही word है
+        await 
+    message.reply_text(triggers_dict[lt])
+        return
     
     # ✅ Step 2: Movie search (only if query has 3+ chars)
     if len(lt) < 3:
