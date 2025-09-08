@@ -12,7 +12,6 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
 </a>
 
-
 ## 🚀 Features  
 
 - 📥 **Instant Movie Save**  
@@ -30,11 +29,14 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 - 📤 **Bulk Send with Delay**  
   Send or forward multiple movies with a built-in delay to avoid Telegram spam limits.  
 
+- 🖼 **Movie Poster with Search Result**  
+  अब जब भी आप मूवी का नाम लिखते हैं, बॉट मूवी का पोस्टर और नाम दोनों भेजता है 📸🎬  
+
 - ⚙ **Custom Settings**  
   Change bot behavior (auto-forward ON/OFF, delay time, etc.) directly from the panel.  
 
 - 📝 **Activity Logs**  
-  All admin actions are recorded in `bot.log` for transparency and troubleshooting.  
+  All admin actions are recorded in `bot.log` for transparency and troubleshooting.
 
 <a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
