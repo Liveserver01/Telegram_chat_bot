@@ -71,6 +71,7 @@ Perfect for personal collections, streaming channels, or private movie-sharing g
 | `GITHUB_REPO`         | GitHub repo name (e.g. `username/repo`) |
 | `GITHUB_FILE_PATH`    | Path to `movie_list.json` in repo |
 | `GITHUB_BRANCH`       | Branch name (default: `main`) |
+| `OMDB_API_KEY`        | OMDB API KEY |
 
 <a href="https://github.com/Liveserver01/Telegram_chat_bot" target="_blank">
   <img src="https://img.shields.io/badge/Bot%20Creator-VIRENDRA%20CHAUHAN-4CAF50?style=for-the-badge" alt="Bot: created by VIRENDRA CHAUHAN"/>
